@@ -6,10 +6,12 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "distpack": "node scripts/distpacker.js",
+    "clean": "rimraf dist/"
   },
   "prettier": {
-    "printWidth": 100,
+    "printWidth": 120,
     "singleQuote": true,
     "overrides": [
       {
@@ -45,6 +47,7 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "ng-packagr": "^20.3.0",
+    "rimraf": "^6.1.0",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.2"
   }
