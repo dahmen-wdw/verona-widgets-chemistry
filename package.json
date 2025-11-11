@@ -9,6 +9,7 @@
     "test:project:verona-widget": "ng test verona-widget",
     "test:project:periodic-system-common": "ng test periodic-system-common",
     "test:project:periodic-system-select-widget": "ng test periodic-system-select-widget",
+    "test:project:molecule-editor-widget": "ng test molecule-editor-widget",
     "test:all": "run-p test:project:*",
     "watch:project:verona-widget": "ng build verona-widget --watch",
     "watch:project:periodic-system-common": "ng build periodic-system-common --watch",
@@ -16,10 +17,12 @@
     "build:project:verona-widget": "ng build verona-widget",
     "build:project:periodic-system-common": "ng build periodic-system-common",
     "build:project:periodic-system-select-widget": "ng build periodic-system-select-widget",
-    "build:all": "run-s build:project:verona-widget build:project:periodic-system-common build:project:periodic-system-select-widget",
+    "build:project:molecule-editor-widget": "ng build molecule-editor-widget",
+    "build:all": "run-s build:project:verona-widget build:project:periodic-system-common build:project:periodic-system-select-widget build:project:molecule-editor-widget",
     "inline:project:periodic-system-select-widget": "node scripts/pack-html.js dist/periodic-system-select-widget/browser",
-    "inline:all": "run-p inline:project:periodic-system-select-widget",
-    "prettier": "prettier -w projects/verona-widget/src/ projects/periodic-system-common/src/ projects/periodic-system-select-widget/src/ projects/showcase-widgets/src/",
+    "inline:project:molecule-editor-widget": "node scripts/pack-html.js dist/molecule-editor-widget/browser",
+    "inline:all": "run-p inline:project:periodic-system-select-widget inline:project:molecule-editor-widget",
+    "prettier": "prettier -w projects/*/src/",
     "clean": "rimraf dist/"
   },
   "dependencies": {

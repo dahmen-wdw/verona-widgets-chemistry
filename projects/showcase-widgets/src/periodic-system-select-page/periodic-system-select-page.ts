@@ -11,11 +11,12 @@ import {
   ShowcaseVeronaWidgetService,
 } from '../service/showcase-verona-widget.service';
 import { ShowcaseVeronaWidgetDirective } from '../service/showcase-verona-widget.directive';
+import { PeriodicSystemSelect } from '../../../periodic-system-select-widget/src/periodic-system-select/periodic-system-select';
 import {
-  PeriodicSystemSelect,
   PeriodicSystemSelectParam,
   PeriodicSystemSharedParam,
-} from '../../../periodic-system-select-widget/src/periodic-system-select/periodic-system-select';
+} from '../../../periodic-system-select-widget/src/periodic-system-select/periodic-system-select.service';
+import { boolParam, intParam, languageParam } from '../widget-page-common/param-converters';
 
 @Component({
   selector: 'app-periodic-system-select-page',
@@ -31,7 +32,7 @@ import {
     ShowcaseVeronaWidgetDirective,
   ],
   templateUrl: './periodic-system-select-page.html',
-  styleUrl: './periodic-system-select-page.scss',
+  styleUrls: ['./periodic-system-select-page.scss', '../widget-page-common/widget-page.scss'],
   providers: [
     provideShowcaseVeronaWidgetService({
       dummySessionId: 'ps-select',
@@ -66,7 +67,7 @@ export class PeriodicSystemSelectPage {
   readonly highlightBlocks = this.config.parameterSignal(PeriodicSystemSelectParam.highlightBlocks, boolParam);
   readonly maxNumberOfSelections = this.config.parameterSignal(
     PeriodicSystemSelectParam.maxNumberOfSelections,
-    intParam
+    intParam,
   );
   readonly closeOnSelection = this.config.parameterSignal(PeriodicSystemSelectParam.closeOnSelection, boolParam);
 
@@ -76,18 +77,3 @@ export class PeriodicSystemSelectPage {
   protected readonly PsLangEnglish = PsLocale.English;
   protected readonly PsLangLatin = PsLocale.Latin;
 }
-
-const intParam = {
-  read: (value: string) => Number.parseInt(value, 10),
-  write: (value: number) => value.toString(10),
-} as const;
-
-const boolParam = {
-  read: (value: string) => value === 'true' || value === '1',
-  write: (value: boolean) => (value ? 'true' : 'false'),
-} as const;
-
-const languageParam = {
-  read: (value: string) => value as PsLocale,
-  write: (value: PsLocale) => value,
-} as const;

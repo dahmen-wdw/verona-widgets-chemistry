@@ -10,7 +10,7 @@ export class ShowcaseVeronaWidgetDirective {
 
   constructor(
     private readonly viewContainerRef: ViewContainerRef,
-    private readonly templateRef: TemplateRef<any>
+    private readonly templateRef: TemplateRef<any>,
   ) {
     effect(() => {
       const state = this.service.state();

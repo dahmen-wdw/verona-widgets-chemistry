@@ -111,7 +111,7 @@ export interface PropertySignalConversion<T> {
 function propertySignal<T>(
   source: WritableSignal<Params>,
   key: string,
-  conversion: undefined | PropertySignalConversion<T>
+  conversion: undefined | PropertySignalConversion<T>,
 ): WritableSignal<T | undefined> {
   function stringToValue(string: string | undefined): T | undefined {
     if (string === undefined) return undefined;

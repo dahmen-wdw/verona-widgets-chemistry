@@ -4,9 +4,5 @@ import { provideRouter } from '@angular/router';
 import { routes } from './showcase-app.routes';
 
 export const showcaseAppConfig: ApplicationConfig = {
-  providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideZonelessChangeDetection(),
-    provideRouter(routes),
-  ],
+  providers: [provideBrowserGlobalErrorListeners(), provideZonelessChangeDetection(), provideRouter(routes)],
 };

@@ -197,6 +197,6 @@ function parametersToRecord(parameters: ReadonlyArray<VowParameter>): Record<str
   return Object.fromEntries(
     parameters.map(({ key, value }) => {
       return [key, value ?? ''] as const;
-    })
+    }),
   );
 }
