@@ -1,12 +1,23 @@
 <lib-ps-table>
   <ng-template [psTableHighlight] let-hoveredElement="hoveredElement">
-    @if (hoveredElement) {
+    @let interactionConfig = psService.interaction.interactionConfig();
+    @if (multiSelectMaxedOut()) {
+      <app-ps-select-alert>
+        <div class="attention">Achtung!</div>
+        <div>Du hast bereits {{ interactionConfig.maxSelectCount }} Elemente gewählt.</div>
+      </app-ps-select-alert>
+    } @else if (hoveredElement) {
       <lib-ps-element-focus [element]="hoveredElement" />
     }
   </ng-template>
   <ng-template [psTableInteractions]>
-    <div style="height: 100%; border: 1px solid red;">
-      <!-- TODO: INTERACTIONS -->
+    <div class="interactions-container">
+      @if (showSubmitButton()) {
+        <button matButton="filled" [disabled]="disableSubmitButton()" (click)="doSubmit()">
+          <mat-icon>check</mat-icon>
+          Speichern
+        </button>
+      }
     </div>
   </ng-template>
 </lib-ps-table>

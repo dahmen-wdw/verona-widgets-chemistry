@@ -1,0 +1,19 @@
+@use "@angular/material" as mat;
+
+.interactions-container {
+  height: 100%;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: end;
+  justify-content: end;
+
+  --mat-button-filled-container-color: black;
+  --mat-button-filled-label-text-color: white;
+}
+
+.attention {
+  font-size: 150%;
+  text-transform: uppercase;
+}
