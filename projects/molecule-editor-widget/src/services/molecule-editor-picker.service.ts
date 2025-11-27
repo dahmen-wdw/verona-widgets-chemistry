@@ -35,8 +35,8 @@ export class MoleculeEditorPickerService implements PsService, PsInteraction {
       showSymbol: true,
       showLabels: false,
       locale: language as PsLocale,
-      defaultBaseColor: '#6b369a',
-      defaultTextColor: '#ffffff',
+      defaultBaseColor: 'var(--mat-sys-primary)',
+      defaultTextColor: 'var(--mat-sys-on-primary)',
       enableBlockColors: flagAsBool(highlightBlocks),
       blockColors: {
         [PsElementBlock.S]: '#cd2f2f',
