@@ -133,6 +133,13 @@ export namespace MoleculeEditorModel {
     },
   );
 
+  export const setBondMultiplicity = produce<MoleculeEditorModel, [ItemId, BondMultiplicity]>((model, bondId, multiplicity) => {
+    const item = model.items[bondId];
+    if (item && item.type === 'Bond') {
+      item.multiplicity = multiplicity;
+    }
+  })
+
   export const deleteItem = produce<MoleculeEditorModel, [ItemId]>((model, itemId) => {
     // Lookup item to be deleted
     const deletedItem = model.items[itemId];

@@ -66,6 +66,12 @@ export class MoleculeEditorService {
         // special case: while bonding, set new bonding multiplicity
         const { multiplicity } = toolMode;
         this.state.set({ ...state, multiplicity });
+      } else if (toolMode.mode === 'bonding' && state.state === 'selected') {
+        const { items } = untracked(this.model);
+        const item = items[state.itemId];
+        if (item && item.type === 'Bond') {
+          this.model.update(model => MoleculeEditorModel.setBondMultiplicity(model, item.itemId, toolMode.multiplicity));
+        }
       } else {
         // default case: reset to idle
         this.state.set(EditorState.idle);
