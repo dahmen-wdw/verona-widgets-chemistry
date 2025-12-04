@@ -25,9 +25,12 @@ export interface PsAppearance {
 
 export interface PsInteraction {
   readonly selectedElements: Signal<ReadonlySet<PsElementNumber>>;
+  readonly highlightedElement: Signal<undefined | PsElementNumber>;
   readonly elementClickBlocked: Signal<boolean>;
 
   clickElement(element: PsElement): void;
+
+  highlightElement(element: undefined | PsElement): void;
 }
 
 export function computeElementName(service: PsService, element: Signal<PsElement>): Signal<string> {

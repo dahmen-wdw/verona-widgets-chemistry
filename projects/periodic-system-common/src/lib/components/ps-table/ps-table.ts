@@ -1,15 +1,13 @@
-import type { Signal, ValueEqualityFn } from '@angular/core';
-import { Component, contentChild, inject, signal, TemplateRef, untracked } from '@angular/core';
+import { Component, computed, contentChild, inject, Signal, TemplateRef } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { PsElement, PsElements } from '../../data/PsData';
+import { PsElement, PsElementBlock, PsElements } from '../../data/PsData';
 import { PsTableElement } from '../ps-table-element/ps-table-element';
 import { PsTableHighlightContext, PsTableHighlightDirective } from '../directives/ps-table-highlight.directive';
+import { PsTableInteractionsDirective } from '../directives/ps-table-interactions.directive';
+import { PsTableNotificationDirective } from '../directives/ps-table-notification.directive';
 import { PsService } from '../../services/ps-service';
-import { PsTableInteractionsDirective } from '../../periodic-system-module';
 
-type ContentChildRef<T> = Signal<undefined | TemplateRef<T>>;
-
-const psElementEqual: ValueEqualityFn<undefined | PsElement> = (a, b) => a?.number === b?.number;
+type ContentChildTemplateRef<T = {}> = Signal<undefined | TemplateRef<T>>;
 
 @Component({
   selector: 'lib-ps-table',
@@ -19,42 +17,45 @@ const psElementEqual: ValueEqualityFn<undefined | PsElement> = (a, b) => a?.numb
 })
 export class PsTable {
   readonly service = inject(PsService);
-  readonly hoveredElement = signal<undefined | PsElement>(undefined, { equal: psElementEqual });
-
-  readonly highlightRef: ContentChildRef<PsTableHighlightContext> = contentChild(PsTableHighlightDirective, {
-    read: TemplateRef,
-  });
-  readonly interactionsRef: ContentChildRef<{}> = contentChild(PsTableInteractionsDirective, { read: TemplateRef });
 
   protected readonly elements = PsElements;
+  protected readonly elementByNumber = new Map(this.elements.map(e => [e.number, e] as const));
+
   protected readonly periodNumbers = [1, 2, 3, 4, 5, 6, 7] as const;
   protected readonly groupNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] as const;
 
+  readonly highlightRef: ContentChildTemplateRef<PsTableHighlightContext> = contentChild(PsTableHighlightDirective, { read: TemplateRef });
+  readonly interactionsRef: ContentChildTemplateRef = contentChild(PsTableInteractionsDirective, { read: TemplateRef });
+  readonly notificationRef: ContentChildTemplateRef = contentChild(PsTableNotificationDirective, { read: TemplateRef });
+
+  readonly hoveredElement = computed<undefined | PsElement>(() => {
+    const highlightedElementNr = this.service.interaction.highlightedElement();
+    if (highlightedElementNr === undefined) return undefined;
+    return this.elementByNumber.get(highlightedElementNr);
+  });
+
   protected elementClassNames(element: PsElement): ReadonlyArray<string> {
     return [
-      `g${element.group}`, // Group "g1" - "g20"
-      `p${element.period}`, // Period "p1" - "p7"
-      `c${element.column}`, // Column "c1" - "c32"
-      `b-${element.block}`, // Block "b-s", "b-p", "b-d", "b-f", "b-g"
+      this.groupClassName(element.group),
+      this.periodClassName(element.period),
+      this.columnClassName(element.column),
+      this.blockClassName(element.block),
     ];
   }
 
-  protected periodClassNames(periodNr: number): ReadonlyArray<string> {
-    return [`p${periodNr}`];
+  protected groupClassName(groupNr: number): string {
+    return `g${groupNr}`; // Group "g1" - "g20"
   }
 
-  protected groupClassNames(groupNr: number): ReadonlyArray<string> {
-    return [`g${groupNr}`];
+  protected periodClassName(periodNr: number): string {
+    return `p${periodNr}`; // Period "p1" - "p7"
   }
 
-  protected enterElementHover(element: PsElement) {
-    this.hoveredElement.set(element);
+  protected columnClassName(columnNr: number): string {
+    return `c${columnNr}`; // Column "c1" - "c32"
   }
 
-  protected leaveElementHover(element: PsElement) {
-    const current = untracked(this.hoveredElement);
-    if (psElementEqual(current, element)) {
-      this.hoveredElement.set(undefined);
-    }
+  protected blockClassName(block: PsElementBlock): string {
+    return `b-${block}`; // Block "b-s", "b-p", "b-d", "b-f", "b-g"
   }
 }

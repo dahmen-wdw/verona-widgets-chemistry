@@ -27,10 +27,15 @@
     left: 4px;
   }
 
-  .mass,
-  .e-neg {
+  .mass {
     position: absolute;
     top: 4px;
+    right: 4px;
+  }
+
+  .e-neg {
+    position: absolute;
+    top: calc(6px + 1rem);
     right: 4px;
   }
 
@@ -55,5 +60,38 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .number-label {
+    position: absolute;
+    top: 4px;
+    left: -8px;
+    transform: translateX(-100%);
+  }
+
+  .mass-label {
+    position: absolute;
+    top: 4px;
+    right: -8px;
+    transform: translateX(100%);
+  }
+
+  .e-neg-label {
+    position: absolute;
+    top: calc(6px + 1rem);
+    right: -8px;
+    transform: translateX(100%);
+  }
+
+  .name-label {
+    position: absolute;
+    bottom: 4px;
+    left: -8px;
+    transform: translateX(-100%);
+  }
+
+  .number-label, .mass-label, .e-neg-label, .name-label {
+    color: var(--mat-sys-outline);
+    pointer-events: none;
   }
 }

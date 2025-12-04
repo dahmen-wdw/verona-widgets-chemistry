@@ -26,15 +26,22 @@
     </div>
   }
 
+  @let notification = notificationRef();
+  @if (notification) {
+    <div class="ps-notification">
+      <ng-container *ngTemplateOutlet="notification"></ng-container>
+    </div>
+  }
+
   @if (appearance.showLabels) {
     @for (periodNr of periodNumbers; track periodNr) {
-      <div class="ps-label" role="presentation" [class]="periodClassNames(periodNr)">
+      <div class="ps-label" role="presentation" [class]="periodClassName(periodNr)">
         {{ periodNr }}
       </div>
     }
 
     @for (groupNr of groupNumbers; track groupNr) {
-      <div class="ps-label" role="presentation" [class]="groupClassNames(groupNr)">
+      <div class="ps-label" role="presentation" [class]="groupClassName(groupNr)">
         {{ groupNr }}
       </div>
     }
@@ -45,8 +52,6 @@
       class="ps-element"
       [class]="elementClassNames(element)"
       [attr.aria-label]="element.symbol"
-      (mouseenter)="enterElementHover(element)"
-      (mouseleave)="leaveElementHover(element)"
     >
       <lib-ps-table-element [element]="element" />
     </section>

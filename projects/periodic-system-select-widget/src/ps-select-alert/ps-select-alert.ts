@@ -5,40 +5,40 @@ import { MatIcon } from '@angular/material/icon';
   selector: 'app-ps-select-alert',
   imports: [MatIcon],
   template: `
-    <div class="alert-container">
-      <section role="alert" class="alert">
-        <div class="alert-sidebar">
-          <mat-icon>feedback</mat-icon>
-        </div>
-        <div class="alert-content">
-          <ng-content></ng-content>
-        </div>
-      </section>
+    <div role="alert" class="alert-container">
+      <div class="alert-sidebar">
+        <mat-icon>feedback</mat-icon>
+      </div>
+      <div class="alert-content">
+        <ng-content></ng-content>
+      </div>
     </div>
   `,
   styles: `
     .alert-container {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      justify-content: center;
-      padding-top: 1rem;
-    }
+      width: 100%;
+      height: 100%;
 
-    .alert {
       display: flex;
       flex-direction: row;
       flex-wrap: nowrap;
-      background-color: #ffec9d;
+      align-items: stretch;
+      justify-content: stretch;
     }
 
     .alert-sidebar {
-      padding: 0.5rem;
-      background-color: #ffce00;
+      padding: 0 0.5rem;
+      background-color: #00b2ff;
+      align-content: center;
     }
 
     .alert-content {
-      padding: 0.75rem 1.5rem;
+      background-color: #88ddff;
+      align-content: center;
+      padding: 0 0.5rem;
+      white-space: wrap;
+      overflow: hidden;
+      flex-grow: 1;
     }
   `,
 })

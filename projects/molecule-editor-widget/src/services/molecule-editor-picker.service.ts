@@ -49,10 +49,15 @@ export class MoleculeEditorPickerService implements PsService, PsInteraction {
   });
 
   readonly selectedElements = computed(() => new Set<PsElementNumber>()); // always empty
+  readonly highlightedElement = computed(() => undefined); // always undefined
   readonly elementClickBlocked = computed(() => false); // always false
 
   clickElement(element: PsElement): void {
     this.moleculeEditorService.elementPickerCallback(element);
+  }
+
+  highlightElement() {
+    // Do nothing
   }
 }
 

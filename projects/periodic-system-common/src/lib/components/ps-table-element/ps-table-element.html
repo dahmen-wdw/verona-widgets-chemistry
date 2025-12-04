@@ -5,7 +5,8 @@
   [disabled]="isSelected()"
   disabledInteractive
   [disableRipple]="service.interaction.elementClickBlocked()"
-  (click)="service.interaction.clickElement(element())"
+  (click)="service.interaction.clickElement(e)"
+  (mouseenter)="service.interaction.highlightElement(e)"
 >
   <div class="label-container">
     @if (appearance.showNumber) {
@@ -14,16 +15,6 @@
     @if (appearance.showMass) {
       <div class="mass">
         {{ e.atomic_mass | number: '1.1-2' }}
-      </div>
-    }
-    @if (appearance.showENeg) {
-      <div class="e-neg">
-        @let eNeg = e.negativity?.pauling;
-        @if (eNeg) {
-          {{ eNeg | number: '1.1-2' }}
-        } @else {
-          &mdash;
-        }
       </div>
     }
     @if (appearance.showSymbol) {

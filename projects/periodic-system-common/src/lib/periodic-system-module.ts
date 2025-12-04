@@ -9,10 +9,12 @@ import {
   PsTableHighlightDirective,
 } from './components/directives/ps-table-highlight.directive';
 import { PsTableInteractionsDirective } from './components/directives/ps-table-interactions.directive';
+import { PsTableNotificationDirective } from './components/directives/ps-table-notification.directive';
 
 export { PsTable, PsTableElement, PsElementFocusDirective };
 export { PsTableHighlightContext, PsTableHighlightDirective };
 export { PsTableInteractionsDirective };
+export { PsTableNotificationDirective };
 
 @NgModule({
   imports: [
@@ -23,7 +25,16 @@ export { PsTableInteractionsDirective };
     PsTableHighlightDirective,
     PsElementFocusDirective,
     PsTableInteractionsDirective,
+    PsTableNotificationDirective,
   ],
-  exports: [PsTable, PsTableElement, PsTableHighlightDirective, PsElementFocusDirective, PsTableInteractionsDirective],
+  exports: [
+    PsTable,
+    PsTableElement,
+    PsTableHighlightDirective,
+    PsElementFocusDirective,
+    PsTableInteractionsDirective,
+    PsTableNotificationDirective,
+  ],
 })
-export class PeriodicSystemModule {}
+export class PeriodicSystemModule {
+}

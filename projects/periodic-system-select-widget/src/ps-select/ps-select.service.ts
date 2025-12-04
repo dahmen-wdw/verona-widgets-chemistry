@@ -69,9 +69,12 @@ export class PsSelectService implements PsService {
 }
 
 class PeriodicSystemSelectInteraction implements PsInteraction {
+  readonly highlightedElement: WritableSignal<undefined | PsElementNumber>;
   readonly selectedElementList: WritableSignal<ReadonlyArray<PsElementNumber>>;
 
   constructor(private readonly widgetService: VeronaWidgetService) {
+    this.highlightedElement = signal(undefined);
+
     // Deserialize initial state received by widget
     const initialSerializedElementSymbols = this.widgetService.stateData();
     this.selectedElementList = signal(parseSerializedElements(initialSerializedElementSymbols));
@@ -115,32 +118,46 @@ class PeriodicSystemSelectInteraction implements PsInteraction {
   readonly elementClickBlocked = computed(() => {
     const { multiSelect, maxSelectCount } = this.interactionConfig();
     const selectedElements = this.selectedElementList();
-    return multiSelect && maxSelectCount > 0 && selectedElements.length >= maxSelectCount;
+    return multiSelect && (maxSelectCount > 0) && (selectedElements.length >= maxSelectCount);
   });
 
-  clickElement(element: PsElement): void | Promise<void> {
+  highlightElement(element: undefined | PsElement): void {
+    this.highlightedElement.set(element?.number);
+  }
+
+  clickElement(element: PsElement): void {
     const { multiSelect, maxSelectCount } = this.interactionConfig();
-    this.selectedElementList.update((list) => {
-      const alreadyIncluded = list.includes(element.number);
-      if (!multiSelect) {
-        // single-select toggle
-        return alreadyIncluded ? [] : [element.number];
-      } else if (alreadyIncluded) {
-        // multi-select remove click
-        return list.filter((x) => x !== element.number);
-      } else if (maxSelectCount < 1 || list.length < maxSelectCount) {
-        // multi-select add click
-        return list.concat(element.number);
+    const selected = this.selectedElementList();
+    const alreadyIncluded = selected.includes(element.number);
+
+    if (!multiSelect) {
+      // single-select toggle
+      if (alreadyIncluded) {
+        this.selectedElementList.set([]);
+        this.highlightedElement.set(undefined);
       } else {
-        // no change
-        return list;
+        this.selectedElementList.set([element.number]);
+        this.highlightedElement.set(element.number);
       }
-    });
+    } else if (alreadyIncluded) {
+      // multi-select remove click
+      this.selectedElementList.set(selected.filter((x) => x !== element.number));
+      this.highlightedElement.set(undefined);
+    } else if ((maxSelectCount < 1) || (selected.length < maxSelectCount)) {
+      // multi-select add click (either no max select count, or still below max select count)
+      this.selectedElementList.set(selected.concat(element.number));
+      this.highlightedElement.set(element.number);
+    } else {
+      // no change (max select count reached),
+      // but still highlight clicked element to show information
+      this.highlightedElement.set(element.number);
+    }
   }
 }
 
-function flagAsBool(flag: string): boolean {
-  return flag === 'true' || flag === '1';
+function flagAsBool(flag: unknown): boolean {
+  // Check for common "truthy" parameter values, including non-standard types; Everything else is considered false
+  return (flag === 'true') || (flag === '1') || (flag === true) || (flag === 1);
 }
 
 function flagAsInt(flag: string, defaultValue = 0): number {
