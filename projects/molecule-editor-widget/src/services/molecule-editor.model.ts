@@ -1,7 +1,7 @@
 import { Nominal, PsElementNumber } from 'periodic-system-common';
 import { produce, WritableDraft } from 'immer';
 
-// --- Model data-structs ---
+// --- Model data-types ---
 
 /** Vector in 2D Euclidean space */
 export type Vector2 = readonly [x: number, y: number];
@@ -140,14 +140,6 @@ export namespace Vector2 {
 
   export function neg([x, y]: Vector2): Vector2 {
     return [-x, -y] as const;
-  }
-
-  export function flipY([x, y]: Vector2): Vector2 {
-    return [x, -y] as const;
-  }
-
-  export function flipX([x, y]: Vector2): Vector2 {
-    return [-x, y] as const;
   }
 
   export function magnitude([x, y]: Vector2): number {

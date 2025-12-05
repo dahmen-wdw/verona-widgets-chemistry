@@ -1,5 +1,9 @@
 import type { PsElement } from 'periodic-system-common';
-import type { AtomId, BondId, BondMultiplicity, Vector2 } from './molecule-editor.model';
+import type { AtomId, BondId, BondMultiplicity } from './molecule-editor.model';
+import { Vector2 } from './molecule-editor.model';
+import { AngleMath } from '../util/angle-math';
+
+// --- View data-types ---
 
 export interface MoleculeEditorView {
   readonly atoms: ReadonlyArray<AtomView>;
@@ -35,6 +39,79 @@ export const enum ElectronOrientation {
   E = 'E',
   S = 'S',
   W = 'W',
+}
+
+// --- View functions ---
+
+export namespace BondView {
+  export type LineDef = readonly [a: Vector2, b: Vector2]; // Definition of a line using two points "a" and "b"
+
+  const deg90 = AngleMath.deg(90); // counter-clockwise 90° constant
+
+  export function valenceBondLines(
+    { leftPosition, rightPosition, multiplicity }: BondView,
+    separationDistance: number,
+  ): Array<LineDef> {
+    const centeredLine = [leftPosition, rightPosition] as const;
+    const bondLineAngle = AngleMath.angleBetween(leftPosition, rightPosition);
+    const bondLineSeparation = Vector2.scale(separationDistance, AngleMath.anglePosition(bondLineAngle + deg90));
+
+    switch (multiplicity) {
+      case 1:
+        return [centeredLine];
+      case 2:
+        return [
+          offsetLine(centeredLine, Vector2.scale(-0.5, bondLineSeparation)),
+          offsetLine(centeredLine, Vector2.scale(+0.5, bondLineSeparation)),
+        ];
+      case 3:
+        return [
+          centeredLine,
+          offsetLine(centeredLine, bondLineSeparation),
+          offsetLine(centeredLine, Vector2.neg(bondLineSeparation)),
+        ];
+      default:
+        console.warn('Invalid bond multiplicity:', multiplicity satisfies never);
+        return [];
+    }
+  }
+
+  function offsetLine([a, b]: LineDef, offset: Vector2): LineDef {
+    const offsetA = Vector2.add(a, offset);
+    const offsetB = Vector2.add(b, offset);
+    return [offsetA, offsetB] as const;
+  }
+
+  export function electronBondDots(
+    { leftPosition, rightPosition, multiplicity }: BondView,
+    separationDistance: number,
+  ): Array<Vector2> {
+    const centerPosition = Vector2.middle(leftPosition, rightPosition);
+    const bondLineAngle = AngleMath.angleBetween(leftPosition, rightPosition);
+    const lineForwardOffset = Vector2.scale(separationDistance, AngleMath.anglePosition(bondLineAngle));
+    const separationOffset = Vector2.scale(separationDistance, AngleMath.anglePosition(bondLineAngle + deg90));
+
+    const c1 = Vector2.add(centerPosition, lineForwardOffset);
+    const c2 = Vector2.add(centerPosition, Vector2.neg(lineForwardOffset));
+
+    switch (multiplicity) {
+      case 1:
+        return [c1, c2];
+      case 2: {
+        const o1 = separationOffset;
+        const o2 = Vector2.neg(o1);
+        return [Vector2.add(c1, o1), Vector2.add(c2, o1), Vector2.add(c1, o2), Vector2.add(c2, o2)];
+      }
+      case 3: {
+        const o1 = Vector2.scale(1.5, separationOffset);
+        const o2 = Vector2.neg(o1);
+        return [c1, c2, Vector2.add(c1, o1), Vector2.add(c2, o1), Vector2.add(c1, o2), Vector2.add(c2, o2)];
+      }
+      default:
+        console.warn('Invalid bond multiplicity:', multiplicity satisfies never);
+        return [];
+    }
+  }
 }
 
 export namespace ElectronView {
