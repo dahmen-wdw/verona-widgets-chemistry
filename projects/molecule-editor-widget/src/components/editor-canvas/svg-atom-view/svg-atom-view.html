@@ -30,7 +30,7 @@
   @for (electron of atom.electrons; track $index) {
     @switch (electron.type) {
       @case (1) {
-        @let coords = singleElectronCoordinates(electron.orientation, 28);
+        @let coords = singleElectronCoordinates(electron, 28);
         <svg:circle
           class="atom-electron"
           [attr.cx]="coords.x"
@@ -39,7 +39,7 @@
         ></svg:circle>
       }
       @case (2) {
-        @let coords = doubleElectronCoordinates(electron.orientation, 28, 12);
+        @let coords = doubleElectronCoordinates(electron, 28, 12);
         <svg:line
           class="atom-electron"
           [attr.x1]="coords.x1"
