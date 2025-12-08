@@ -1,7 +1,7 @@
 <svg
   appSvgCanvas
   [svgCanvasHost]="hostRef.nativeElement"
-  [svgCanvasScale]="canvasScale()"
+  [svgCanvasScale]="service.canvasScale()"
   [style.cursor]="canvasCursor()"
   [style.--atom-handle-cursor]="atomHandleCursor()"
   [style.--bond-handle-cursor]="bondHandleCursor()"

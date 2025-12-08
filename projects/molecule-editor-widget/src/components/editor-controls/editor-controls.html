@@ -100,6 +100,24 @@
   </div>
 </div>
 
+<!-- Left Toolbar -->
+<!-- DISABLED, currently not required -->
+@if (false) {
+  <div class="left-container">
+    <div class="toolbar left" [class.deactivated]="deactivateControls()">
+      <button matIconButton type="button" [disabled]="zoomInDisabled()" (click)="handleZoom(+1)">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+      <div role="button" (click)="zoomLevelIndex.set(4)">
+        {{ zoomLevels[zoomLevelIndex()] }}%
+      </div>
+      <button matIconButton type="button" [disabled]="zoomOutDisabled()" (click)="handleZoom(-1)">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+    </div>
+  </div>
+}
+
 <!-- Save button -->
 <div class="save-container">
   <ng-container *ngTemplateOutlet="saveTemplateRef()" />

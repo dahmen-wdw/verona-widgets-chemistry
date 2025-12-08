@@ -7,6 +7,7 @@ import type {
   BondMultiplicity,
   MoleculeEditorGraph,
   MoleculeEditorModel,
+  ToolMode,
 } from './molecule-editor.model';
 import { EditorState, ItemId, Vector2 } from './molecule-editor.model';
 import { AtomView, BondView, ElectronOrientation, ElectronView, MoleculeEditorView } from './molecule-editor.view';
@@ -19,6 +20,7 @@ export class MoleculeEditorRenderer {
   readonly view = computed((): MoleculeEditorView => {
     const model = this.service.model();
     const graph = this.service.graph();
+    const toolMode = this.service.toolMode();
     const editorState = this.service.editorState();
 
     const atoms: Array<AtomView> = [];
@@ -26,7 +28,7 @@ export class MoleculeEditorRenderer {
     renderModelAtoms(graph, editorState, atoms);
     renderModelBonds(model, editorState, bonds);
     renderTemporaryAtoms(model, editorState, atoms);
-    renderTemporaryBonds(model, editorState, bonds);
+    renderTemporaryBonds(model, editorState, toolMode, bonds);
 
     return { atoms, bonds };
   });
@@ -195,8 +197,8 @@ function temporaryAtomView(itemId: AtomId, elementNr: PsElementNumber, position:
   };
 }
 
-function renderTemporaryBonds(model: MoleculeEditorModel, editorState: EditorState, bonds: Array<BondView>) {
-  switch (editorState.state) {
+function renderTemporaryBonds(model: MoleculeEditorModel, state: EditorState, mode: ToolMode, bonds: Array<BondView>) {
+  switch (state.state) {
     case 'idle':
     case 'selected':
     case 'preMoveAtom':
@@ -205,14 +207,15 @@ function renderTemporaryBonds(model: MoleculeEditorModel, editorState: EditorSta
     }
     case 'addingAtom':
     case 'movingAtom': {
-      if (editorState.snap) {
-        const targetAtom = model.atoms[editorState.snap.targetId];
-        bonds.push(temporaryBondView(editorState.snap.snapPos, targetAtom.position, 1));
+      if (state.snap) {
+        const targetAtom = model.atoms[state.snap.targetId];
+        const multiplicity = mode.mode === 'bonding' ? mode.multiplicity : 1;
+        bonds.push(temporaryBondView(state.snap.snapPos, targetAtom.position, multiplicity));
       }
       break;
     }
     case 'addingBond': {
-      const { startId, multiplicity, hoverPos } = editorState;
+      const { startId, multiplicity, hoverPos } = state;
       const startItem = model.atoms[startId];
       if (!startItem || startItem.type !== 'Atom') {
         console.warn(`EditorState references invalid atom "${startId}":`, startItem);
@@ -222,7 +225,7 @@ function renderTemporaryBonds(model: MoleculeEditorModel, editorState: EditorSta
       break;
     }
     default:
-      console.warn('Rendering unknown state bond:', editorState satisfies never);
+      console.warn('Rendering unknown state bond:', state satisfies never);
   }
 }
 

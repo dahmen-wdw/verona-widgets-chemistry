@@ -1,4 +1,4 @@
-import { Component, computed, contentChild, inject, input, TemplateRef } from '@angular/core';
+import { Component, computed, contentChild, effect, inject, input, signal, TemplateRef } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { MatButton, MatIconButton } from '@angular/material/button';
@@ -43,7 +43,12 @@ export class EditorControls {
     lookupElement('P'),
     lookupElement('S'),
   ];
-  readonly quickPickElements2 = [lookupElement('F'), lookupElement('Cl'), lookupElement('Br'), lookupElement('I')];
+  readonly quickPickElements2 = [
+    lookupElement('F'),
+    lookupElement('Cl'),
+    lookupElement('Br'),
+    lookupElement('I'),
+  ];
 
   readonly pointerModeActive = this.computeToolModeActive('pointer');
   readonly duplicateModeActive = this.computeToolModeActive('duplicate');
@@ -54,6 +59,9 @@ export class EditorControls {
   readonly bondingSingleToolIcon = this.computeBondingToolIcon(1);
   readonly bondingDoubleToolIcon = this.computeBondingToolIcon(2);
   readonly bondingTripleToolIcon = this.computeBondingToolIcon(3);
+
+  readonly zoomLevels = [25, 50, 75, 100, 125, 150, 200] as const;
+  readonly zoomLevelIndex = signal(3);
 
   readonly isModelEmpty = computed(() => {
     const { atoms } = this.service.model();
@@ -93,6 +101,17 @@ export class EditorControls {
     const atom = this.selectedAtom();
     return !atom || atom.electrons <= 0;
   });
+
+  readonly zoomOutDisabled = computed(() => this.zoomLevelIndex() <= 0);
+  readonly zoomInDisabled = computed(() => this.zoomLevelIndex() >= (this.zoomLevels.length - 1));
+
+  constructor() {
+    effect(() => {
+      const zoomLevel = this.zoomLevels[this.zoomLevelIndex()];
+      const zoomLevelScale = zoomLevel / 100;
+      this.service.canvasScale.set(zoomLevelScale);
+    });
+  }
 
   setPointerMode() {
     this.service.toolMode.set(ToolMode.pointer);
@@ -159,6 +178,13 @@ export class EditorControls {
     if (approved === true) {
       this.service.clearModel();
     }
+  }
+
+  handleZoom(delta: -1 | 1) {
+    this.zoomLevelIndex.update(index => {
+      const next = index + delta;
+      return Math.max(0, Math.min(this.zoomLevels.length - 1, next));
+    });
   }
 }
 

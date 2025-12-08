@@ -34,6 +34,16 @@
   justify-content: center;
 }
 
+.left-container {
+  position: absolute;
+  inset: 0 auto 0 0;
+
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
 .save-container {
   position: absolute;
   inset: auto 0 0 auto;
@@ -64,7 +74,7 @@
     }
   }
 
-  &.right {
+  &.right, &.left {
     flex-direction: column;
     padding: 1rem 0.25rem;
 

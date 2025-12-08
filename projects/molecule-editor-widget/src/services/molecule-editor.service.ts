@@ -50,6 +50,7 @@ export class MoleculeEditorService {
   readonly model = historySignal(MoleculeEditorModel.empty, { capacity: editorHistoryCapacity });
   readonly toolMode = signal<ToolMode>(ToolMode.pointer);
   readonly editorState = signal<EditorState>(EditorState.idle);
+  readonly canvasScale = signal(1.0);
   readonly openPicker = signal(false);
 
   readonly graph = computed(() => MoleculeEditorGraph.createFrom(this.model()));
@@ -81,16 +82,13 @@ export class MoleculeEditorService {
       }
       // special case: selecting multiplicity while a bond is selected, set new multiplicity and keep selection
       else if (toolMode.mode === 'bonding' && editorState.state === 'selected') {
-        const { bonds } = untracked(this.model);
-        const bond = bonds[editorState.itemId];
-        if (bond) {
-          this.model.update((model) =>
-            MoleculeEditorModel.setBondMultiplicity(model, bond.itemId, toolMode.multiplicity),
-          );
-        }
+        this.model.update((model) => {
+          const bond = model.bonds[editorState.itemId];
+          return bond ? MoleculeEditorModel.setBondMultiplicity(model, bond.itemId, toolMode.multiplicity) : model;
+        });
       }
-      // special case: selecting duplicate while adding an atom, keep state
-      else if (toolMode.mode === 'duplicate' && editorState.state === 'addingAtom') {
+      // special case: selecting duplicate/bonding while adding an atom, keep state
+      else if ((toolMode.mode === 'duplicate' || toolMode.mode === 'bonding') && editorState.state === 'addingAtom') {
         // Do nothing
       }
       // default case: reset state to idle
@@ -189,6 +187,7 @@ export class MoleculeEditorService {
   }
 
   private handleCanvasClick(position: Vector2) {
+    const mode = this.toolMode();
     const state = this.editorState();
 
     switch (state.state) {
@@ -202,9 +201,10 @@ export class MoleculeEditorService {
         const atomId = ItemId.generate<'Atom'>();
         if (snap) {
           const bondId = ItemId.generate<'Bond'>();
+          const multiplicity = mode.mode === 'bonding' ? mode.multiplicity : 1;
           this.model.update((model) => {
             const model2 = MoleculeEditorModel.addAtom(model, atomId, elementNr, snap.snapPos);
-            return MoleculeEditorModel.addBond(model2, bondId, atomId, snap.targetId, 1);
+            return MoleculeEditorModel.addBond(model2, bondId, atomId, snap.targetId, multiplicity);
           }, true);
         } else {
           this.model.update((model) => {
@@ -235,7 +235,8 @@ export class MoleculeEditorService {
         this.editorState.set(EditorState.select(id));
         break;
       }
-      case 'duplicate': {
+      case 'duplicate':
+      case 'bonding': {
         // In duplicate-mode, add another atom of the same element
         this.editorState.set(EditorState.addAtom(elementNr, position));
         break;

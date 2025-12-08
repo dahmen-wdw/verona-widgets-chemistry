@@ -16,8 +16,6 @@ export class EditorCanvas {
   readonly renderer = inject(MoleculeEditorRenderer);
   readonly hostRef: ElementRef<HTMLElement> = inject(ElementRef);
 
-  readonly canvasScale = signal(1.0);
-
   readonly canvasCursor = computed(() => {
     const state = this.service.editorState();
 
