@@ -19,38 +19,45 @@ export type ToolMode =
 /** Possible active states of the editor */
 export type EditorState =
   | {
-  readonly state: 'idle';
-}
+      readonly state: 'idle';
+    }
   | {
-  readonly state: 'selected';
-  readonly itemId: ItemId;
-}
+      readonly state: 'selected';
+      readonly itemId: ItemId;
+    }
   | {
-  readonly state: 'addingAtom';
-  readonly elementNr: PsElementNumber;
-  readonly hoverPos: Vector2;
-}
+      readonly state: 'addingAtom';
+      readonly elementNr: PsElementNumber;
+      readonly hoverPos: Vector2;
+      readonly snap: undefined | AtomSnap;
+    }
   | {
-  readonly state: 'preMoveAtom';
-  readonly atomId: AtomId;
-}
+      readonly state: 'preMoveAtom';
+      readonly atomId: AtomId;
+    }
   | {
-  readonly state: 'movingAtom';
-  readonly atomId: AtomId;
-  readonly targetPos: Vector2;
-}
+      readonly state: 'movingAtom';
+      readonly atomId: AtomId;
+      readonly targetPos: Vector2;
+      readonly snap: undefined | AtomSnap;
+    }
   | {
-  readonly state: 'addingBond';
-  readonly startId: AtomId;
-  readonly hoverPos: Vector2;
-  readonly multiplicity: BondMultiplicity;
-}
+      readonly state: 'addingBond';
+      readonly startId: AtomId;
+      readonly hoverPos: Vector2;
+      readonly multiplicity: BondMultiplicity;
+    }
   | {
-  readonly state: 'movingGroup';
-  readonly startPos: Vector2;
-  readonly targetPos: Vector2;
-  readonly groupItemIds: ReadonlyArray<ItemId>;
-};
+      readonly state: 'movingGroup';
+      readonly startPos: Vector2;
+      readonly targetPos: Vector2;
+      readonly groupItemIds: ReadonlyArray<ItemId>;
+    };
+
+export interface AtomSnap {
+  readonly targetId: AtomId;
+  readonly snapPos: Vector2;
+}
 
 /** Union literal of known item types */
 export type ItemType = 'Atom' | 'Bond';
@@ -304,16 +311,16 @@ export namespace EditorState {
     return { state: 'selected', itemId } as const satisfies EditorState;
   }
 
-  export function addAtom(elementNr: PsElementNumber, hoverPosition: Vector2) {
-    return { state: 'addingAtom', elementNr, hoverPos: hoverPosition } as const satisfies EditorState;
+  export function addAtom(elementNr: PsElementNumber, hoverPos: Vector2) {
+    return { state: 'addingAtom', elementNr, hoverPos, snap: undefined } as const satisfies EditorState;
   }
 
   export function prepareMoveAtom(atomId: AtomId) {
     return { state: 'preMoveAtom', atomId } as const satisfies EditorState;
   }
 
-  export function moveAtom(atomId: AtomId, targetPosition: Vector2) {
-    return { state: 'movingAtom', atomId, targetPos: targetPosition } as const satisfies EditorState;
+  export function moveAtom(atomId: AtomId, targetPos: Vector2) {
+    return { state: 'movingAtom', atomId, targetPos, snap: undefined } as const satisfies EditorState;
   }
 
   export function groupMove(startPos: Vector2, groupItemIds: ReadonlyArray<ItemId>) {
@@ -329,27 +336,90 @@ export namespace EditorState {
     } as const satisfies EditorState;
   }
 
-  type EditorSubstate<S extends EditorState['state']> = EditorState & { state: S };
+  export type Substate<S extends EditorState['state']> = EditorState & { state: S };
 
-  export function isMovingAtom(state: EditorState, atomId: ItemId): state is EditorSubstate<'movingAtom' | 'movingGroup'> {
-    return (state.state === 'movingAtom' && state.atomId === atomId)
-      || (state.state === 'movingGroup' && state.groupItemIds.includes(atomId));
+  export function isMovingAtom(state: EditorState, atomId: ItemId): state is Substate<'movingAtom' | 'movingGroup'> {
+    return (
+      (state.state === 'movingAtom' && state.atomId === atomId) ||
+      (state.state === 'movingGroup' && state.groupItemIds.includes(atomId))
+    );
   }
 
-  export function isItemSelected(state: EditorState, atomId: ItemId): state is EditorSubstate<'selected'> {
+  export function isItemSelected(state: EditorState, atomId: ItemId): state is Substate<'selected'> {
     return state.state === 'selected' && state.itemId === atomId;
   }
 
-  export function isItemTargeted(state: EditorState, itemId: ItemId): state is EditorSubstate<'addingBond'> {
+  export function isItemBondTargeted(state: EditorState, itemId: ItemId): state is Substate<'addingBond'> {
     return state.state === 'addingBond' && state.startId === itemId;
+  }
+
+  export function isItemSnapTargeted(state: EditorState, itemId: ItemId): boolean {
+    return (state.state === 'addingAtom' || state.state === 'movingAtom') && state.snap?.targetId === itemId;
+  }
+
+  export function searchSnap<S extends Substate<'addingAtom' | 'movingAtom'>>(
+    state: S,
+    snapRadius: number,
+    proximityRadius: number,
+    graph: MoleculeEditorGraph,
+  ): S {
+    const position = state.state === 'addingAtom' ? state.hoverPos : state.targetPos;
+    const excludeId = state.state === 'addingAtom' ? undefined : state.atomId;
+    const snap = findAtomSnapTarget(position, snapRadius, proximityRadius, excludeId, graph);
+    return { ...state, snap };
+  }
+
+  function findAtomSnapTarget(
+    position: Vector2,
+    snapRadius: number,
+    proximityRadius: number,
+    excludeId: AtomId | undefined,
+    graph: MoleculeEditorGraph,
+  ): undefined | AtomSnap {
+    // Find atom with the least distance, within proximity radius
+    let targetAtom: undefined | AtomModel;
+    let minDistance = Number.POSITIVE_INFINITY;
+    for (const [atom, atomBonds] of graph.atomBonds.entries()) {
+      // Exclude target atom, or atoms bonded to target atom
+      if (excludeId) {
+        if (atom.itemId === excludeId) {
+          continue;
+        }
+        if (atomBonds.some((bond) => bond.leftAtomId === excludeId || bond.rightAtomId === excludeId)) {
+          continue;
+        }
+      }
+
+      const distance = Vector2.distance(position, atom.position);
+      if (distance < proximityRadius && distance < minDistance) {
+        minDistance = distance;
+        targetAtom = atom;
+      }
+    }
+    if (!targetAtom) {
+      return undefined;
+    }
+
+    // Find snapping position on horizontal/vertical axis
+    const [deltaX, deltaY] = Vector2.sub(position, targetAtom.position);
+    const horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+    const snapOffset = horizontal
+      ? ([Math.sign(deltaX) * snapRadius, 0] as const)
+      : ([0, Math.sign(deltaY) * snapRadius] as const);
+
+    // Snap to x/y axis
+    return {
+      targetId: targetAtom.itemId,
+      snapPos: Vector2.add(targetAtom.position, snapOffset),
+    };
   }
 }
 
 export namespace MoleculeEditorGraph {
   export function createFrom(model: MoleculeEditorModel): MoleculeEditorGraph {
-    const itemIndex = new Map<ItemId, AtomModel | BondModel>;
-    const atomBonds = new Map<AtomModel, Array<BondModel>>;
-    const bondAtoms = new Map<BondModel, [AtomModel, AtomModel]>;
+    const itemIndex = new Map<ItemId, AtomModel | BondModel>();
+    const atomBonds = new Map<AtomModel, Array<BondModel>>();
+    const bondAtoms = new Map<BondModel, [AtomModel, AtomModel]>();
 
     for (const atomKey in model.atoms) {
       const atomId = atomKey as AtomId;
@@ -377,33 +447,42 @@ export namespace MoleculeEditorGraph {
     const pivotItem = graph.itemIndex.get(pivotItemId);
     if (pivotItem === undefined) {
       return [];
-    } else switch (pivotItem.type) {
-      case 'Atom':
-        return findAtomRelationsRecursive(graph, pivotItem, new Set());
-      case 'Bond':
-        return [];
-      default:
-        console.error('Unknown pivot item: ', pivotItem satisfies never);
-        return [];
-    }
+    } else
+      switch (pivotItem.type) {
+        case 'Atom':
+          return findAtomRelationsRecursive(graph, pivotItem, new Set());
+        case 'Bond':
+          return findBondRelationsRecursive(graph, pivotItem, new Set());
+        default:
+          console.error('Unknown pivot item: ', pivotItem satisfies never);
+          return [];
+      }
   }
 
-  function findAtomRelationsRecursive(graph: MoleculeEditorGraph, atom: AtomModel, visited: Set<ItemId>): Array<ItemId> {
+  function findAtomRelationsRecursive(
+    graph: MoleculeEditorGraph,
+    atom: AtomModel,
+    visited: Set<ItemId>,
+  ): Array<ItemId> {
     if (visited.has(atom.itemId)) return [];
     else visited.add(atom.itemId);
 
     const bonds = graph.atomBonds.get(atom) ?? [];
-    const relations = bonds.flatMap(bond => findBondRelationsRecursive(graph, bond, visited));
+    const relations = bonds.flatMap((bond) => findBondRelationsRecursive(graph, bond, visited));
     relations.push(atom.itemId);
     return relations;
   }
 
-  function findBondRelationsRecursive(graph: MoleculeEditorGraph, bond: BondModel, visited: Set<ItemId>): Array<ItemId> {
+  function findBondRelationsRecursive(
+    graph: MoleculeEditorGraph,
+    bond: BondModel,
+    visited: Set<ItemId>,
+  ): Array<ItemId> {
     if (visited.has(bond.itemId)) return [];
     else visited.add(bond.itemId);
 
     const atoms = graph.bondAtoms.get(bond) ?? [];
-    const relations = atoms.flatMap(atom => findAtomRelationsRecursive(graph, atom, visited));
+    const relations = atoms.flatMap((atom) => findAtomRelationsRecursive(graph, atom, visited));
     relations.push(bond.itemId);
     return relations;
   }

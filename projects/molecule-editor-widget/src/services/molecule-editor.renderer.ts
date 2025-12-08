@@ -1,7 +1,13 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { PsElementNumber } from 'periodic-system-common';
 import { MoleculeEditorService } from './molecule-editor.service';
-import type { AtomId, AtomModel, MoleculeEditorGraph, MoleculeEditorModel } from './molecule-editor.model';
+import type {
+  AtomId,
+  AtomModel,
+  BondMultiplicity,
+  MoleculeEditorGraph,
+  MoleculeEditorModel,
+} from './molecule-editor.model';
 import { EditorState, ItemId, Vector2 } from './molecule-editor.model';
 import { AtomView, BondView, ElectronOrientation, ElectronView, MoleculeEditorView } from './molecule-editor.view';
 import { lookupElement } from './molecule-editor.helper';
@@ -17,7 +23,7 @@ export class MoleculeEditorRenderer {
 
     const atoms: Array<AtomView> = [];
     const bonds: Array<BondView> = [];
-    renderModelAtoms(model, graph, editorState, atoms);
+    renderModelAtoms(graph, editorState, atoms);
     renderModelBonds(model, editorState, bonds);
     renderTemporaryAtoms(model, editorState, atoms);
     renderTemporaryBonds(model, editorState, bonds);
@@ -26,16 +32,9 @@ export class MoleculeEditorRenderer {
   });
 }
 
-//region Render model to view
-
-function renderModelAtoms(
-  model: MoleculeEditorModel,
-  graph: MoleculeEditorGraph,
-  state: EditorState,
-  atomViews: Array<AtomView>,
-) {
+function renderModelAtoms(graph: MoleculeEditorGraph, state: EditorState, atomViews: Array<AtomView>) {
   // Render atoms
-  for (const atom of Object.values(model.atoms)) {
+  for (const atom of Object.values(graph.model.atoms)) {
     if (EditorState.isMovingAtom(state, atom.itemId)) {
       continue; // Skip rendering atom that is currently being moved
     }
@@ -48,7 +47,7 @@ function modelAtomView(atom: AtomModel, graph: MoleculeEditorGraph, state: Edito
 
   const element = lookupElement(elementNr);
   const selected = EditorState.isItemSelected(state, itemId);
-  const targeted = EditorState.isItemTargeted(state, itemId);
+  const targeted = EditorState.isItemBondTargeted(state, itemId) || EditorState.isItemSnapTargeted(state, itemId);
 
   const electronViews = renderAtomElectronViews(atom, graph);
 
@@ -79,12 +78,16 @@ function renderAtomElectronViews(atom: AtomModel, graph: MoleculeEditorGraph): A
     if (bondAtoms === undefined) continue;
 
     const [leftAtom, rightAtom] = bondAtoms;
-    const otherAtom = (leftAtom === atom) ? rightAtom : leftAtom;
+    const otherAtom = leftAtom === atom ? rightAtom : leftAtom;
     const [deltaX, deltaY] = Vector2.sub(otherAtom.position, atom.position);
     const horizontal = Math.abs(deltaX) > Math.abs(deltaY); // |x| > |y|
-    const bondOrientation = horizontal ?
-      (deltaX > 0 ? ElectronOrientation.E : ElectronOrientation.W) :
-      (deltaY > 0 ? ElectronOrientation.S : ElectronOrientation.N);
+    const bondOrientation = horizontal
+      ? deltaX > 0
+        ? ElectronOrientation.E
+        : ElectronOrientation.W
+      : deltaY > 0
+        ? ElectronOrientation.S
+        : ElectronOrientation.N;
 
     bondOrientations.add(bondOrientation);
   }
@@ -110,8 +113,8 @@ function renderModelBonds(model: MoleculeEditorModel, state: EditorState, bondVi
     const { [leftAtomId]: leftAtom, [rightAtomId]: rightAtom } = model.atoms;
     if (!leftAtom || !rightAtom) continue; // Skip bonds referencing missing atoms
 
-    const [leftPosition, leftTemporary] = visualAtomPosition(state, leftAtom);
-    const [rightPosition, rightTemporary] = visualAtomPosition(state, rightAtom);
+    const [leftPosition, leftTemporary] = visualAtomPositionForBond(state, leftAtom);
+    const [rightPosition, rightTemporary] = visualAtomPositionForBond(state, rightAtom);
 
     const selected = EditorState.isItemSelected(state, itemId);
     const temporary = leftTemporary || rightTemporary;
@@ -127,7 +130,7 @@ function renderModelBonds(model: MoleculeEditorModel, state: EditorState, bondVi
   }
 }
 
-function visualAtomPosition(state: EditorState, atom: AtomModel): [position: Vector2, temporary: boolean] {
+function visualAtomPositionForBond(state: EditorState, atom: AtomModel): [position: Vector2, temporary: boolean] {
   if (!EditorState.isMovingAtom(state, atom.itemId)) {
     return [atom.position, false];
   }
@@ -150,14 +153,16 @@ function renderTemporaryAtoms(model: MoleculeEditorModel, editorState: EditorSta
     case 'addingBond':
       break; // No temporary atoms
     case 'addingAtom': {
-      const { elementNr, hoverPos: position } = editorState;
-      atomViews.push(temporaryAtomView(ItemId.tmpAddAtom, elementNr, position));
+      const { elementNr, hoverPos, snap } = editorState;
+      const visualPosition = snap ? snap.snapPos : hoverPos;
+      atomViews.push(temporaryAtomView(ItemId.tmpAddAtom, elementNr, visualPosition));
       break;
     }
     case 'movingAtom': {
-      const { atomId, targetPos: position } = editorState;
+      const { atomId, targetPos, snap } = editorState;
       const item = model.atoms[atomId];
-      if (item) atomViews.push(temporaryAtomView(ItemId.tmpMoveAtom(atomId), item.elementNr, position));
+      const visualPosition = snap ? snap.snapPos : targetPos;
+      if (item) atomViews.push(temporaryAtomView(ItemId.tmpMoveAtom(atomId), item.elementNr, visualPosition));
       else console.warn(`Invalid item "${atomId}" referenced for move:`, item);
       break;
     }
@@ -194,11 +199,18 @@ function renderTemporaryBonds(model: MoleculeEditorModel, editorState: EditorSta
   switch (editorState.state) {
     case 'idle':
     case 'selected':
-    case 'addingAtom':
     case 'preMoveAtom':
-    case 'movingAtom':
-    case 'movingGroup':
+    case 'movingGroup': {
       break; // No temporary bond (Rendered in renderModelItems for better performance)
+    }
+    case 'addingAtom':
+    case 'movingAtom': {
+      if (editorState.snap) {
+        const targetAtom = model.atoms[editorState.snap.targetId];
+        bonds.push(temporaryBondView(editorState.snap.snapPos, targetAtom.position, 1));
+      }
+      break;
+    }
     case 'addingBond': {
       const { startId, multiplicity, hoverPos } = editorState;
       const startItem = model.atoms[startId];
@@ -206,17 +218,21 @@ function renderTemporaryBonds(model: MoleculeEditorModel, editorState: EditorSta
         console.warn(`EditorState references invalid atom "${startId}":`, startItem);
         break;
       }
-      bonds.push({
-        itemId: ItemId.tmpAddBond,
-        multiplicity: multiplicity,
-        leftPosition: startItem.position,
-        rightPosition: hoverPos,
-        selected: false,
-        temporary: true,
-      });
+      bonds.push(temporaryBondView(startItem.position, hoverPos, multiplicity));
       break;
     }
     default:
       console.warn('Rendering unknown state bond:', editorState satisfies never);
   }
+}
+
+function temporaryBondView(leftPosition: Vector2, rightPosition: Vector2, multiplicity: BondMultiplicity): BondView {
+  return {
+    itemId: ItemId.tmpAddBond,
+    multiplicity,
+    leftPosition,
+    rightPosition,
+    selected: false,
+    temporary: true,
+  };
 }

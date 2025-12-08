@@ -14,6 +14,12 @@ import {
 } from './molecule-editor.model';
 import { deferPromise, DeferredPromise } from '../util/defer-promise';
 import { historySignal } from '../util/history-signal';
+import {
+  defaultBondingType,
+  editorHistoryCapacity,
+  snapProximityRadius,
+  snapRadius,
+} from './molecule-editor.constants';
 
 export const enum MoleculeEditorParam {
   language = 'LANGUAGE',
@@ -34,8 +40,6 @@ export const enum MoleculeEditorBondingType {
 export interface MoleculeEditorAppearance {
   readonly bondingType: MoleculeEditorBondingType;
 }
-
-const editorHistoryCapacity = 100;
 
 @Injectable()
 export class MoleculeEditorService {
@@ -91,6 +95,7 @@ export class MoleculeEditorService {
       }
     });
 
+    // Uncomment for debugging: Log state/mode/model changes
     //effect(() => console.log('tool mode =', this.toolMode()));
     //effect(() => console.log('editor state =', this.editorState()));
     //effect(() => console.log('editor model =', this.model()));
@@ -101,8 +106,8 @@ export class MoleculeEditorService {
   }
 
   clearModel() {
-    this.editorState.set(EditorState.idle);
     this.model.set(MoleculeEditorModel.empty, true);
+    this.editorState.set(EditorState.idle);
   }
 
   //region Add/pick element
@@ -141,7 +146,7 @@ export class MoleculeEditorService {
   changeSelectedElementAtoms(delta: -1 | 1) {
     const state = this.editorState();
     if (state.state === 'selected') {
-      this.model.update((model) => MoleculeEditorModel.changeAtomElectrons(model, state.itemId, delta));
+      this.model.update((model) => MoleculeEditorModel.changeAtomElectrons(model, state.itemId, delta), true);
     }
   }
 
@@ -151,7 +156,7 @@ export class MoleculeEditorService {
   deleteSelectedItem() {
     const state = this.editorState();
     if (state.state === 'selected') {
-      this.model.update((model) => MoleculeEditorModel.deleteItem(model, state.itemId));
+      this.model.update((model) => MoleculeEditorModel.deleteItem(model, state.itemId), true);
       this.editorState.set(EditorState.idle);
     }
   }
@@ -181,16 +186,34 @@ export class MoleculeEditorService {
 
   private handleCanvasClick(position: Vector2) {
     const state = this.editorState();
+
     switch (state.state) {
-      case 'selected':
+      case 'selected': {
         this.editorState.set(EditorState.idle);
         break;
+      }
       case 'addingAtom': {
-        const { elementNr } = state;
+        const { elementNr, snap } = this.searchSnap({ ...state, hoverPos: position });
+
         const atomId = ItemId.generate<'Atom'>();
-        this.model.update((model) => MoleculeEditorModel.addAtom(model, atomId, elementNr, position), true);
+        if (snap) {
+          const bondId = ItemId.generate<'Bond'>();
+          this.model.update((model) => {
+            const model2 = MoleculeEditorModel.addAtom(model, atomId, elementNr, snap.snapPos);
+            return MoleculeEditorModel.addBond(model2, bondId, atomId, snap.targetId, 1);
+          }, true);
+        } else {
+          this.model.update((model) => {
+            return MoleculeEditorModel.addAtom(model, atomId, elementNr, position);
+          }, true);
+        }
+
         this.editorState.set(EditorState.idle);
-        setTimeout(() => this.afterAtomAdded(atomId, elementNr, position), 0);
+
+        setTimeout(() => {
+          const nextPosition = snap ? snap.snapPos : position;
+          this.afterAtomAdded(atomId, elementNr, nextPosition);
+        }, 0);
         break;
       }
       case 'addingBond': {
@@ -203,52 +226,68 @@ export class MoleculeEditorService {
   private afterAtomAdded(id: AtomId, elementNr: PsElementNumber, position: Vector2) {
     const toolMode = this.toolMode();
     switch (toolMode.mode) {
-      case 'pointer':
+      case 'pointer': {
         // In pointer-mode, select newly created atom
         this.editorState.set(EditorState.select(id));
         break;
-      case 'duplicate':
+      }
+      case 'duplicate': {
         // In duplicate-mode, add another atom of the same element
         this.editorState.set(EditorState.addAtom(elementNr, position));
         break;
-      case 'bonding':
-        this.editorState.set(EditorState.addBond(id, toolMode.multiplicity, position));
-        break;
+      }
     }
   }
 
   private handleCanvasMove(position: Vector2) {
     const state = this.editorState();
+
     switch (state.state) {
-      case 'addingAtom':
-        this.editorState.set(EditorState.addAtom(state.elementNr, position));
+      case 'addingAtom': {
+        this.editorState.set(this.searchSnap(EditorState.addAtom(state.elementNr, position)));
         break;
+      }
       case 'preMoveAtom':
-      case 'movingAtom':
-        this.editorState.set(EditorState.moveAtom(state.atomId, position));
+      case 'movingAtom': {
+        this.editorState.set(this.searchSnap(EditorState.moveAtom(state.atomId, position)));
         break;
-      case 'addingBond':
+      }
+      case 'addingBond': {
         this.editorState.set({ ...state, hoverPos: position });
         break;
-      case 'movingGroup':
+      }
+      case 'movingGroup': {
         this.editorState.set({ ...state, targetPos: position });
         break;
+      }
     }
   }
 
   private handleCanvasUp(position: Vector2) {
     const state = this.editorState();
     switch (state.state) {
-      case 'preMoveAtom':
+      case 'preMoveAtom': {
         this.editorState.set(EditorState.idle);
         break;
-      case 'movingAtom':
-        this.model.update((model) => MoleculeEditorModel.moveAtom(model, state.atomId, position), true);
+      }
+      case 'movingAtom': {
+        const { atomId, snap } = state;
+        const finalPosition = snap ? snap.snapPos : position;
+        if (snap) {
+          const bondId = ItemId.generate<'Bond'>();
+          this.model.update((model) => {
+            const m2 = MoleculeEditorModel.moveAtom(model, atomId, finalPosition);
+            return MoleculeEditorModel.addBond(m2, bondId, atomId, snap.targetId, 1);
+          });
+        } else {
+          this.model.update((model) => MoleculeEditorModel.moveAtom(model, atomId, position), true);
+        }
         this.editorState.set(EditorState.idle);
         break;
+      }
       case 'movingGroup': {
         const moveDelta = Vector2.sub(state.targetPos, state.startPos);
-        this.model.update(model => MoleculeEditorModel.moveGroup(model, moveDelta, state.groupItemIds), true);
+        this.model.update((model) => MoleculeEditorModel.moveGroup(model, moveDelta, state.groupItemIds), true);
         this.editorState.set(EditorState.idle);
         break;
       }
@@ -334,7 +373,9 @@ export class MoleculeEditorService {
     const state = this.editorState();
     switch (state.state) {
       case 'addingBond': {
-        if (state.startId !== atomId) this.completeAddBond(state.startId, atomId, state.multiplicity);
+        if (state.startId !== atomId) {
+          this.completeAddBond(state.startId, atomId, state.multiplicity);
+        }
         break;
       }
       default:
@@ -346,22 +387,26 @@ export class MoleculeEditorService {
     const state = this.editorState();
     const toolMode = this.toolMode();
     switch (toolMode.mode) {
-      case 'pointer':
+      case 'pointer': {
         this.editorState.set(EditorState.prepareMoveAtom(atomId));
         break;
-      case 'duplicate':
+      }
+      case 'duplicate': {
         // Do nothing ("click" is used for duplicating)
         break;
-      case 'bonding':
+      }
+      case 'bonding': {
         // In bonding tool-mode, go to add-bond state if not already bonding or on the already bonding atom
         // (See handleAtomClick for add-bond state completion)
         if (state.state !== 'addingBond' || state.startId === atomId) {
           this.editorState.set(EditorState.addBond(atomId, toolMode.multiplicity, position));
         }
         break;
-      case 'groupMove':
+      }
+      case 'groupMove': {
         this.beginGroupMove(atomId, position);
         break;
+      }
     }
   }
 
@@ -404,7 +449,7 @@ export class MoleculeEditorService {
         this.toggleBondSelected(bondId);
         break;
       case 'bonding':
-        this.model.update(model => MoleculeEditorModel.setBondMultiplicity(model, bondId, mode.multiplicity));
+        this.model.update((model) => MoleculeEditorModel.setBondMultiplicity(model, bondId, mode.multiplicity));
         break;
     }
   }
@@ -425,9 +470,12 @@ export class MoleculeEditorService {
     const model = this.model();
     return !(itemId in model.atoms) && !(itemId in model.bonds);
   }
-}
 
-const defaultBondingType = MoleculeEditorBondingType.electrons;
+  private searchSnap<S extends EditorState.Substate<'addingAtom' | 'movingAtom'>>(state: S): S {
+    const graph = this.graph();
+    return EditorState.searchSnap(state, snapRadius, snapProximityRadius, graph);
+  }
+}
 
 function computeMoleculeEditorAppearance(widgetService: VeronaWidgetService): Signal<MoleculeEditorAppearance> {
   return computed((): MoleculeEditorAppearance => {
