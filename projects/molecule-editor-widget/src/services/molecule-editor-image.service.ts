@@ -1,7 +1,9 @@
-import { MoleculeEditorModel } from './molecule-editor.model';
+import { inject, Injectable, signal } from '@angular/core';
 import { Nominal } from 'periodic-system-common';
-import { Injectable, signal } from '@angular/core';
-import { BondView,ElectronView,MoleculeEditorView } from './molecule-editor.view';
+import { ItemId, MoleculeEditorModel, Vector2 } from './molecule-editor.model';
+import { BondView, ElectronView, MoleculeEditorView } from './molecule-editor.view';
+import { MoleculeEditorBondingType, MoleculeEditorService } from './molecule-editor.service';
+import * as C from './molecule-editor.constants';
 
 /** Base64-encoded PNG image snapshot of a molecule-editor model */
 export type MoleculeEditorImage = Nominal<string, 'MoleculeEditorImage'>;
@@ -12,6 +14,8 @@ export interface MoleculeEditorModelWithImage extends MoleculeEditorModel {
 
 @Injectable()
 export class MoleculeEditorImageService {
+  private readonly service = inject(MoleculeEditorService);
+
   private readonly loadingFlag = signal(false);
   private readonly xmlSerializer = new XMLSerializer();
 
@@ -37,80 +41,56 @@ export class MoleculeEditorImageService {
   private async renderAsImage(view: MoleculeEditorView): Promise<MoleculeEditorImage> {
     const svgRoot = this.renderSvgTree(view);
     const svgContent = this.xmlSerializer.serializeToString(svgRoot);
-    console.log('svgContent', svgContent);
 
-    const { width, height } = svgRoot.viewBox.baseVal; //TODO: Determine final size of image?
+    const { width, height } = svgRoot.viewBox.baseVal;
     const canvas = await this.renderSvgToImage(svgContent, width, height);
     return canvas.toDataURL('image/png') as MoleculeEditorImage;
   }
 
   private renderSvgTree(view: MoleculeEditorView): SVGSVGElement {
+    const { bondingType } = this.service.appearance();
+
     const ns = 'http://www.w3.org/2000/svg';
-    const root = document.createElementNS(ns, 'svg');
+    const svg = document.createElementNS(ns, 'svg');
 
-    // ------------------------------
-    // Magic Numbers
-    // ------------------------------
-    const PAD = 20; // padding around the viewBox edges
-    const LINE_STROKE_WIDTH = 1.2; // line stroke width - also used for electron dot radius as they need to be the same size - don't ask...
-    const BOND_SEPARATION_DISTANCE = 5; // bond line separation distance
-    const BOND_ELECTRON_RADIUS = 1.2; // bond line stroke width
-    const ATOM_RADIUS = 12; // atom circle radius
-    const ATOM_SYMBOL_FONT_SIZE = 18; // atom symbol font size
-    const ELECTRON_SINGLE_D = 16;
-    const ELECTRON_DOUBLE_D = 16;
-    const ELECTRON_DOUBLE_W = 5;
-
-    // ------------------------------
     // Compute viewBox from atoms
-    // ------------------------------
+    const [viewBoxMin, viewBoxMax] = calculateViewBox(view, [40, 40]);
+    const viewBoxSize = Vector2.sub(viewBoxMax, viewBoxMin);
+    svg.setAttribute('viewBox', viewBoxAttributeValue(viewBoxMin, viewBoxSize));
 
-    const { minX, maxX, minY, maxY } = view.atoms.reduce(
-      (acc, atom) => {
-        const [x, y] = atom.position;
-        return {
-          minX: Math.min(acc.minX, x),
-          maxX: Math.max(acc.maxX, x),
-          minY: Math.min(acc.minY, y),
-          maxY: Math.max(acc.maxY, y),
-        };
-      },
-      { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
-    );
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-    console.log('Computed viewBoxParameters:', { minX, minY, maxX, maxY, width, height });
-
-    root.setAttribute('viewBox', `${minX - PAD} ${minY - PAD} ${width + PAD * 2} ${height + PAD * 2}`);
-    console.log('resulting viewBox:', root.viewBox.baseVal);
+    const root = document.createElementNS(ns, 'g');
+    root.style.backgroundColor = '#ffffff';
+    svg.appendChild(root);
 
     // ------------------------------
     // Draw bonds
     // ------------------------------
     for (const bond of view.bonds) {
-      // TODO: Different styles for selected/temporary bonds
-
-      const lines = BondView.valenceBondLines(bond, BOND_SEPARATION_DISTANCE);
-      for (const [a, b] of lines) {
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', String(a[0]));
-        line.setAttribute('y1', String(a[1]));
-        line.setAttribute('x2', String(b[0]));
-        line.setAttribute('y2', String(b[1]));
-        line.setAttribute('stroke', 'black');
-        line.setAttribute('stroke-width', String(LINE_STROKE_WIDTH));
-        root.appendChild(line);
-      }
-
-      const dots = BondView.electronBondDots(bond, BOND_SEPARATION_DISTANCE);
-      for (const pos of dots) {
-        const dot = document.createElementNS(ns, 'circle');
-        dot.setAttribute('cx', String(pos[0]));
-        dot.setAttribute('cy', String(pos[1]));
-        dot.setAttribute('r', String(BOND_ELECTRON_RADIUS));
-        dot.setAttribute('fill', 'black');
-        root.appendChild(dot);
+      if (bondingType === MoleculeEditorBondingType.valence) {
+        const lines = BondView.valenceBondLines(bond, C.bondSeparation);
+        for (const [a, b] of lines) {
+          const [x1, y1] = a;
+          const [x2, y2] = b;
+          const line = document.createElementNS(ns, 'line');
+          line.setAttribute('x1', String(x1));
+          line.setAttribute('y1', String(y1));
+          line.setAttribute('x2', String(x2));
+          line.setAttribute('y2', String(y2));
+          line.setAttribute('stroke', '#000000');
+          line.setAttribute('stroke-width', String(C.singleElectronRadius));
+          root.appendChild(line);
+        }
+      } else if (bondingType === MoleculeEditorBondingType.electrons) {
+        const dots = BondView.electronBondDots(bond, C.bondSeparation);
+        for (const pos of dots) {
+          const [cx, cy] = pos;
+          const dot = document.createElementNS(ns, 'circle');
+          dot.setAttribute('cx', String(cx));
+          dot.setAttribute('cy', String(cy));
+          dot.setAttribute('r', String(C.electronBondRadius));
+          dot.setAttribute('fill', '#000000');
+          root.appendChild(dot);
+        }
       }
     }
 
@@ -118,48 +98,52 @@ export class MoleculeEditorImageService {
     // Draw atoms and local electrons
     // ------------------------------
     for (const atom of view.atoms) {
-      const g = document.createElementNS(ns, 'g');
-      g.setAttribute('transform', `translate(${atom.position[0]}, ${atom.position[1]})`);
+      if (ItemId.isTemporaryId(atom.itemId)) continue;
 
-      // --- Atom circle covering nearby bonds ---      
+      const g = document.createElementNS(ns, 'g');
+
+      // --- Atom circle covering nearby bonds ---
       const circle = document.createElementNS(ns, 'circle');
-      circle.setAttribute('cx', '0');
-      circle.setAttribute('cy', '0');
-      circle.setAttribute('r', String(ATOM_RADIUS));
-      circle.setAttribute('fill', 'white'); // background color covering bonds
-      circle.setAttribute('stroke', 'black'); // outline
-      circle.setAttribute('stroke-width', String(LINE_STROKE_WIDTH));
+      const [centerX, centerY] = atom.position;
+      circle.setAttribute('cx', String(centerX));
+      circle.setAttribute('cy', String(centerY));
+      circle.setAttribute('r', String(C.atomHandleRadius));
+      circle.setAttribute('fill', '#ffffff'); // background color covering bonds
+      circle.setAttribute('stroke', '#000000');
+      circle.setAttribute('stroke-width', '1');
+      circle.setAttribute('stroke-opacity', '50%');
       g.appendChild(circle);
 
       // atom element text
       const text = document.createElementNS(ns, 'text');
       text.textContent = atom.element.symbol;
-      text.setAttribute('x', '0');
-      text.setAttribute('y', '0');
-      text.setAttribute('font-size', String(ATOM_SYMBOL_FONT_SIZE));
+      text.setAttribute('x', String(centerX));
+      text.setAttribute('y', String(centerY));
+      text.setAttribute('font-size', '24px');
+      text.setAttribute('font-family', 'sans-serif');
       text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('dominant-baseline', 'middle');
-      text.setAttribute('fill', 'black');
+      text.setAttribute('dominant-baseline', 'central');
+      text.setAttribute('fill', '#000000');
       g.appendChild(text);
 
       for (const e of atom.electrons) {
         if (e.type === 1) {
-          const pos = ElectronView.singleCoordinates(e, [0, 0], ELECTRON_SINGLE_D);
+          const pos = ElectronView.singleCoordinates(e, atom.position, C.singleElectronDist);
           const dot = document.createElementNS(ns, 'circle');
           dot.setAttribute('cx', String(pos.x));
           dot.setAttribute('cy', String(pos.y));
-          dot.setAttribute('r', String(LINE_STROKE_WIDTH));
-          dot.setAttribute('fill', 'black');
+          dot.setAttribute('r', String(C.singleElectronRadius));
+          dot.setAttribute('fill', '#000000');
           g.appendChild(dot);
         } else {
-          const coords = ElectronView.doubleCoordinates(e, [0, 0], ELECTRON_DOUBLE_D, ELECTRON_DOUBLE_W);
+          const coords = ElectronView.doubleCoordinates(e, atom.position, C.doubleElectronDist, C.doubleElectronWidth);
           const tick = document.createElementNS(ns, 'line');
           tick.setAttribute('x1', String(coords.x1));
           tick.setAttribute('y1', String(coords.y1));
           tick.setAttribute('x2', String(coords.x2));
           tick.setAttribute('y2', String(coords.y2));
-          tick.setAttribute('stroke', 'black');
-          tick.setAttribute('stroke-width', String(LINE_STROKE_WIDTH));
+          tick.setAttribute('stroke', '#000000');
+          tick.setAttribute('stroke-width', String(C.doubleElectronRadius));
           tick.setAttribute('stroke-linecap', 'round');
           g.appendChild(tick);
         }
@@ -168,7 +152,7 @@ export class MoleculeEditorImageService {
       root.appendChild(g);
     }
 
-    return root;
+    return svg;
   }
 
   private async renderSvgToImage(svgContent: string, width: number, height: number): Promise<HTMLCanvasElement> {
@@ -197,4 +181,28 @@ export class MoleculeEditorImageService {
       URL.revokeObjectURL(svgObjectUrl);
     });
   }
+}
+
+function calculateViewBox(view: MoleculeEditorView, padding: Vector2): [min: Vector2, max: Vector2] {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  for (const atom of view.atoms) {
+    if (ItemId.isTemporaryId(atom.itemId)) continue;
+    const [x, y] = atom.position;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  }
+
+  const min = Vector2.sub([minX, minY], padding);
+  const max = Vector2.add([maxX, maxY], padding);
+  return [min, max] as const;
+}
+
+function viewBoxAttributeValue([minX, minY]: Vector2, [sizeX, sizeY]: Vector2): string {
+  return [minX, minY, sizeX, sizeY].join(' ');
 }

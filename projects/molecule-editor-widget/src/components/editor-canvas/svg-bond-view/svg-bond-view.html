@@ -2,16 +2,12 @@
 <ng-container xmlns:svg="http://www.w3.org/2000/svg">
   @if (!bond.temporary) {
     <!-- Handle is an invisible line behind visible bond, serves as a target for selection by clicking on it -->
-    @let handleLeftX = bond.leftPosition[0];
-    @let handleLeftY = bond.leftPosition[1];
-    @let handleRightX = bond.rightPosition[0];
-    @let handleRightY = bond.rightPosition[1];
     <svg:line
       class="bond-handle"
-      [attr.x1]="handleLeftX"
-      [attr.y1]="handleLeftY"
-      [attr.x2]="handleRightX"
-      [attr.y2]="handleRightY"
+      [attr.x1]="bond.leftPosition[0]"
+      [attr.y1]="bond.leftPosition[1]"
+      [attr.x2]="bond.rightPosition[0]"
+      [attr.y2]="bond.rightPosition[1]"
       (click)="service.handleBondEvent(bond.itemId, $event)"
     ></svg:line>
   }
@@ -20,32 +16,27 @@
   @switch (bondingType()) {
     @case (ValenceBondingType) {
       @for (line of bondLinePositions(); track $index) {
-        @let leftX = line[0][0];
-        @let leftY = line[0][1];
-        @let rightX = line[1][0];
-        @let rightY = line[1][1];
         <svg:line
           class="bond-line"
           [class.selected]="bond.selected"
           [class.temporary]="bond.temporary"
-          [attr.x1]="leftX"
-          [attr.y1]="leftY"
-          [attr.x2]="rightX"
-          [attr.y2]="rightY"
+          [attr.x1]="line[0][0]"
+          [attr.y1]="line[0][1]"
+          [attr.x2]="line[1][0]"
+          [attr.y2]="line[1][1]"
+          [attr.stroke-width]="valenceBondRadius"
         ></svg:line>
       }
     }
     @case (ElectronsBondingType) {
       @for (dot of bondDotsPositions(); track $index) {
-        @let cx = dot[0];
-        @let cy = dot[1];
         <svg:circle
           class="bond-dot"
           [class.selected]="bond.selected"
           [class.temporary]="bond.temporary"
-          [attr.cx]="cx"
-          [attr.cy]="cy"
-          [attr.r]="4"
+          [attr.cx]="dot[0]"
+          [attr.cy]="dot[1]"
+          [attr.r]="electronBondRadius"
         ></svg:circle>
       }
     }

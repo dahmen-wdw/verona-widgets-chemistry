@@ -102,22 +102,25 @@ export interface MoleculeEditorGraph {
 // --- Model functions ---
 
 export namespace ItemId {
+  const ITEM_PREFIX = 'item:';
+  const TEMP_PREFIX = 'tmp:';
+
   /** Item IDs ""item:..." are generated from random numbers */
   export function generate<T extends ItemType>(): ItemIdSubtype<T> {
     const randomValue = Math.random().toString(36);
-    const randomItemId = randomValue.replace('0.', 'item:');
+    const randomItemId = randomValue.replace('0.', ITEM_PREFIX);
     return randomItemId as ItemIdSubtype<T>;
   }
 
-  export const tmpAddAtom = 'tmp:addAtom' as AtomId;
-  export const tmpAddBond = 'tmp:addBond' as BondId;
+  export const tmpAddAtom = (TEMP_PREFIX + 'addAtom') as AtomId;
+  export const tmpAddBond = (TEMP_PREFIX + 'addBond') as BondId;
 
   export function tmpMoveAtom(atomId: AtomId): AtomId {
-    return `tmp:moveAtom:${atomId}` as AtomId;
+    return (TEMP_PREFIX + 'moveAtom:' + atomId) as AtomId;
   }
 
-  export function tmpMoveBond(bondId: BondId): BondId {
-    return `tmp:moveBond:${bondId}` as BondId;
+  export function isTemporaryId(id: ItemId): boolean {
+    return id.startsWith('tmp:');
   }
 }
 
@@ -146,9 +149,10 @@ export namespace Vector2 {
     return Math.sqrt(x * x + y * y);
   }
 
-  export function normalize(v: Vector2): Vector2 {
-    const l = Vector2.magnitude(v);
-    return [v[0] / l, v[1] / l] as const;
+  export function distance([ax, ay]: Vector2, [bx, by]: Vector2): number {
+    const dx = ax - bx;
+    const dy = ay - by;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 }
 
@@ -264,20 +268,18 @@ export namespace MoleculeEditorModel {
 
   export const ATOM_TOTAL_MAX_ELECTRONS = 8;
 
-  /**
-   * Helper function determining the maximum allowed number of electrons an atom is allowed to have.
-   * Outer electrons are limited to `8 - sum(bond.multiplicity for bond where bond.left == atom or bond.right == atom)`
-   */
+  // Helper function determining the maximum allowed number of electrons an atom is allowed to have.
+  // Outer electrons are limited to `8 - sum(bond.multiplicity for bond where bond.left == atom or bond.right == atom)`
   function limitAtomElectrons(model: MoleculeEditorModel, atom: AtomModel, electrons: number): number {
     const occupiedByBonds = Object.values(model.bonds)
-      .filter(bond => (bond.leftAtomId === atom.itemId) || (bond.rightAtomId === atom.itemId))
+      .filter((bond) => bond.leftAtomId === atom.itemId || bond.rightAtomId === atom.itemId)
       .reduce((sum, bond) => sum + bond.multiplicity, 0);
 
     const maxElectrons = ATOM_TOTAL_MAX_ELECTRONS - occupiedByBonds;
     return Math.max(0, Math.min(maxElectrons, electrons));
   }
 
-  /** Helper function trimming excess electrons from atoms connected by a given bond */
+  // Helper function trimming excess electrons from atoms connected by a given bond
   function trimBondConnectedAtomElectrons(model: WritableDraft<MoleculeEditorModel>, bond: BondModel) {
     const { [bond.leftAtomId]: leftAtom, [bond.rightAtomId]: rightAtom } = model.atoms;
     if (leftAtom) leftAtom.electrons = limitAtomElectrons(model, leftAtom, leftAtom.electrons);
@@ -289,9 +291,10 @@ export namespace ToolMode {
   export const pointer = { mode: 'pointer' } as const satisfies ToolMode;
   export const duplicate = { mode: 'duplicate' } as const satisfies ToolMode;
   export const groupMove = { mode: 'groupMove' } as const satisfies ToolMode;
-  export const bonding = (multiplicity: BondMultiplicity) => {
+
+  export function bonding(multiplicity: BondMultiplicity) {
     return { mode: 'bonding', multiplicity } as const satisfies ToolMode;
-  };
+  }
 }
 
 export namespace EditorState {

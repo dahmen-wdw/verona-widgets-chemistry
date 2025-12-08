@@ -77,8 +77,8 @@ export class EditorControls {
     const selectedAtom = this.selectedAtom();
     if (!selectedAtom) return 0;
 
-    const occupiedByBonds = (graph.atomBonds.get(selectedAtom) ?? [])
-      .reduce((sum, bond) => sum + bond.multiplicity, 0);
+    const atomBonds = graph.atomBonds.get(selectedAtom) ?? [];
+    const occupiedByBonds = atomBonds.reduce((sum, bond) => sum + bond.multiplicity, 0);
 
     return MoleculeEditorModel.ATOM_TOTAL_MAX_ELECTRONS - occupiedByBonds;
   });
@@ -164,17 +164,9 @@ export class EditorControls {
 
 @Component({
   selector: 'app-clear-all-dialog',
-  imports: [
-    MatDialogTitle,
-    MatDialogContent,
-    MatDialogActions,
-    MatButton,
-    MatDialogClose,
-  ],
+  imports: [MatDialogTitle, MatDialogContent, MatDialogActions, MatButton, MatDialogClose],
   template: `
-    <h2 matDialogTitle>
-      Molekül-Editor zurücksetzen
-    </h2>
+    <h2 matDialogTitle>Molekül-Editor zurücksetzen</h2>
     <mat-dialog-content>
       <p>
         <strong>Achtung:</strong>
@@ -187,5 +179,4 @@ export class EditorControls {
     </mat-dialog-actions>
   `,
 })
-export class EditorControlsClearAllDialog {
-}
+export class EditorControlsClearAllDialog {}

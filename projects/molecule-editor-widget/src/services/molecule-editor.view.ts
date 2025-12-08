@@ -147,14 +147,12 @@ export namespace ElectronView {
     // Single orientation occupied -> Move opposite orientation to front as preferred
     if (occupied.length === 1) {
       const preferred = oppositeOrientation(occupied[0]);
-      result.splice(result.indexOf(preferred), 1);
-      result.unshift(preferred);
+      moveToFront(result, preferred);
     }
 
     // Move occupied directions to back
     for (const orientation of occupied) {
-      result.splice(result.indexOf(orientation), 1);
-      result.push(orientation);
+      moveToBack(result, orientation);
     }
 
     return result;
@@ -170,6 +168,22 @@ export namespace ElectronView {
         return ElectronOrientation.N;
       case ElectronOrientation.W:
         return ElectronOrientation.E;
+    }
+  }
+
+  function moveToFront<T>(items: Array<T>, item: T) {
+    const index = items.indexOf(item);
+    if (index >= 0) {
+      items.splice(index, 1);
+      items.unshift(item);
+    }
+  }
+
+  function moveToBack<T>(items: Array<T>, item: T) {
+    const index = items.indexOf(item);
+    if (index >= 0) {
+      items.splice(index, 1);
+      items.push(item);
     }
   }
 }
