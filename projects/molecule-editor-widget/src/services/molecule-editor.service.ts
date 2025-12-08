@@ -58,6 +58,10 @@ export class MoleculeEditorService {
   private _currentPickElementPromise?: DeferredPromise<PsElement>;
 
   constructor() {
+    // Initialize editor-model from serialized state when opening widget
+    const initialStateData = this.widgetService.stateData();
+    this.model.set(parseSerializedEditorModel(initialStateData), false);
+
     effect(() => {
       // PsTable closed without picking an element
       if (!this.openPicker()) {
@@ -502,4 +506,15 @@ function parseBondingType(value: string): MoleculeEditorBondingType {
       console.warn(`Received unknown ${MoleculeEditorSharedParam.bondingType} parameter:`, value);
       return defaultBondingType;
   }
+}
+
+function parseSerializedEditorModel(initialStateData: string): MoleculeEditorModel {
+  if (!initialStateData) return MoleculeEditorModel.empty;
+
+  const data = JSON.parse(initialStateData);
+  if (data === null || typeof data !== 'object') return MoleculeEditorModel.empty;
+
+  const atoms = data.atoms ?? {};
+  const bonds = data.bonds ?? {};
+  return { atoms, bonds };
 }
