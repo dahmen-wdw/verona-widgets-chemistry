@@ -1,3 +1,5 @@
+import { ReadonlyRecord } from 'periodic-system-common';
+
 export type VeronaWidgetSendEvent = VowReadyNotification | VowStateChangedNotification | VowReturnRequested;
 
 export type VeronaWidgetReceiveEvent = VowStartCommand;
@@ -10,8 +12,8 @@ export interface VowReadyNotification {
 export interface VowStartCommand {
   readonly type: 'vowStartCommand';
   readonly sessionId: string;
-  readonly parameters?: ReadonlyArray<VowParameter>;
-  readonly sharedParameters?: ReadonlyArray<VowParameter>;
+  readonly parameters?: VowParameterCollection;
+  readonly sharedParameters?: VowParameterCollection;
   readonly state: string; // serialized initial state of the widget, received from host
 }
 
@@ -34,3 +36,8 @@ export interface VowReturnRequested {
   readonly timeStamp: string;
   readonly saveState?: boolean;
 }
+
+export type VowParameterCollection =
+  | ReadonlyArray<VowParameter>
+  | ReadonlyRecord<string, undefined | string>
+  ;

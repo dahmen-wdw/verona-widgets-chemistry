@@ -1,13 +1,13 @@
+import { computed, effect, inject, Injectable, InjectionToken, Provider, signal, untracked } from '@angular/core';
 import {
   VeronaWidgetReceiveEvent,
   VeronaWidgetSendEvent,
-  VowParameter,
+  VowParameterCollection,
   VowReadyNotification,
   VowStartCommand,
 } from './verona-widget.events';
-import { computed, effect, inject, Injectable, InjectionToken, Provider, signal, untracked } from '@angular/core';
-import { VeronaModuleMetadata } from './verona-metadata.model';
 import { VeronaWidgetConfiguration, VeronaWidgetService, VeronaWidgetState } from './verona-widget.service';
+import { VeronaModuleMetadata } from './verona-metadata.model';
 
 export const VeronaWidgetIFrame = new InjectionToken<VeronaWidgetIFrame>('verona-widget.iframe');
 
@@ -63,6 +63,7 @@ export class IFrameVeronaWidgetService implements VeronaWidgetService {
     // Listen to incoming message events
     this.messageSource.addEventListener('message', (message: MessageEvent<VeronaWidgetReceiveEvent>) => {
       const event = message.data;
+      console.log('Verona-Widget received message:', event);
       switch (event.type) {
         case 'vowStartCommand':
           this.handleStartCommand(event);
@@ -152,15 +153,19 @@ function currentTimestamp(): string {
 function createWidgetConfig(command: VowStartCommand): VeronaWidgetConfiguration {
   return {
     sessionId: command.sessionId,
-    parameters: parametersToRecord(command.parameters ?? []),
-    sharedParameters: parametersToRecord(command.sharedParameters ?? []),
+    parameters: parametersToRecord(command.parameters),
+    sharedParameters: parametersToRecord(command.sharedParameters),
   };
 }
 
-function parametersToRecord(parameters: ReadonlyArray<VowParameter>): Record<string, string> {
-  return Object.fromEntries(
-    parameters.map(({ key, value }) => {
-      return [key, value ?? ''] as const;
-    }),
-  );
+function parametersToRecord(parameters: undefined | VowParameterCollection): Record<string, string> {
+  if (!parameters) {
+    return {};
+  }
+
+  const entries = Array.isArray(parameters) ?
+    parameters.map(({ key, value }) => [key, value ?? ''] as const) :
+    Object.entries(parameters).map(([key, value]) => [key, value ?? ''] as const);
+
+  return Object.fromEntries(entries);
 }
