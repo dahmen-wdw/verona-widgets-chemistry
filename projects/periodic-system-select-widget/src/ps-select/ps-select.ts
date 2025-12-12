@@ -27,12 +27,6 @@ export class PsSelect {
     return selectedElements.size < 1;
   });
 
-  readonly multiSelectMaxedOut = computed(() => {
-    const { multiSelect, maxSelectCount } = this.psService.interaction.interactionConfig();
-    const selectedElements = this.psService.interaction.selectedElements();
-    return multiSelect && maxSelectCount > 1 && selectedElements.size >= maxSelectCount;
-  });
-
   doSubmit() {
     this.widgetService.sendReturn(true);
   }

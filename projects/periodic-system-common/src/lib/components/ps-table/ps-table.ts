@@ -30,7 +30,7 @@ export class PsTable {
   readonly interactionsRef: ContentChildTemplateRef = contentChild(PsTableInteractionsDirective, { read: TemplateRef });
   readonly notificationRef: ContentChildTemplateRef = contentChild(PsTableNotificationDirective, { read: TemplateRef });
 
-  readonly hoveredElement = computed<undefined | PsElement>(() => {
+  readonly highlightedElement = computed<undefined | PsElement>(() => {
     const highlightedElementNr = this.service.interaction.highlightedElement();
     if (highlightedElementNr === undefined) return undefined;
     return this.elementByNumber.get(highlightedElementNr);
