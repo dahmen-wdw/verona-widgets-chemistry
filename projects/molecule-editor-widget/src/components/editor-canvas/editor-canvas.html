@@ -1,0 +1,20 @@
+<svg
+  appSvgCanvas
+  [svgCanvasHost]="hostRef.nativeElement"
+  [svgCanvasScale]="service.canvasScale()"
+  [style.cursor]="canvasCursor()"
+  [style.--atom-handle-cursor]="atomHandleCursor()"
+  [style.--bond-handle-cursor]="bondHandleCursor()"
+  (pointermove)="service.handleCanvasEvent($event)"
+  (pointerdown)="service.handleCanvasEvent($event)"
+  (pointerup)="service.handleCanvasEvent($event)"
+  (click)="service.handleCanvasEvent($event)"
+>
+  @let view = renderer.view();
+  @for (bond of view.bonds; track bond.itemId) {
+    <g [bondView]="bond"></g>
+  }
+  @for (atom of view.atoms; track atom.itemId) {
+    <g [atomView]="atom"></g>
+  }
+</svg>

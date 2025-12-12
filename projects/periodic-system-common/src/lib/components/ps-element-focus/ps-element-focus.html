@@ -1,0 +1,37 @@
+@let e = element();
+@let appearance = service.appearance();
+<mat-card
+  appearance="outlined"
+  class="ps-focus-container"
+  [style.--ps-focus-base-color]="computeBaseColor()"
+  [style.--ps-focus-text-color]="appearance.defaultTextColor"
+>
+  <div class="ps-focus-element">
+    @if (appearance.showNumber) {
+      <label class="number-label">Ordnungszahl</label>
+      <div class="number" aria-label="Ordnungszahl">{{ e.number }}</div>
+    }
+    @if (appearance.showMass) {
+      <label class="mass-label">Atommasse</label>
+      <div class="mass" aria-label="Atommasse">{{ e.atomic_mass | number: '1.2-4' }}</div>
+    }
+    @if (appearance.showENeg) {
+      <label class="e-neg-label">Elektronegativität</label>
+      <div class="e-neg" aria-label="Elektronegativität">
+        @let eNeg = e.negativity?.pauling;
+        @if (eNeg) {
+          {{ eNeg | number: '1.2-4' }}
+        } @else {
+          &mdash;
+        }
+      </div>
+    }
+    @if (appearance.showSymbol) {
+      <div class="symbol">{{ e.symbol }}</div>
+    }
+    @if (appearance.showName) {
+      <label class="name-label">Name</label>
+      <div class="name" aria-label="Name">{{ elementName() }}</div>
+    }
+  </div>
+</mat-card>

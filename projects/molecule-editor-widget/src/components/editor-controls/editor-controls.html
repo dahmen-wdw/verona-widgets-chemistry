@@ -1,0 +1,137 @@
+<!-- Top Toolbar -->
+<div class="top-container">
+  <div class="toolbar top">
+    @let atom = selectedAtom();
+    @let noItemSelected = !isItemSelected();
+    <button
+      matIconButton
+      type="button"
+      [disabled]="noItemSelected || decrementElectronDisabled()"
+      (click)="$event.stopPropagation(); service.changeSelectedElementAtoms(-1)"
+    >
+      <mat-icon>remove</mat-icon>
+    </button>
+
+    <mat-icon
+      [style.--mat-icon-color]="atom ? undefined : 'var(--mat-sys-secondary)'"
+      [svgIcon]="atom ? `iqb:electrons_${atom.electrons}` : 'iqb:atom_electrons'"
+    />
+
+    <button
+      matIconButton
+      type="button"
+      [disabled]="noItemSelected || incrementElectronDisabled()"
+      (click)="$event.stopPropagation(); service.changeSelectedElementAtoms(+1)"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+
+    <div class="divider"></div>
+
+    <button
+      matIconButton
+      type="button"
+      title="1"
+      [class.active-tool]="bondingSingleModeActive()"
+      (click)="$event.stopPropagation(); setBondingModeActive(1)"
+    >
+      <mat-icon [svgIcon]="bondingSingleToolIcon()" />
+    </button>
+    <button
+      matIconButton
+      type="button"
+      title="2"
+      [class.active-tool]="bondingDoubleModeActive()"
+      (click)="$event.stopPropagation(); setBondingModeActive(2)"
+    >
+      <mat-icon [svgIcon]="bondingDoubleToolIcon()" />
+    </button>
+    <button
+      matIconButton
+      type="button"
+      title="3"
+      [class.active-tool]="bondingTripleModeActive()"
+      (click)="$event.stopPropagation(); setBondingModeActive(3)"
+    >
+      <mat-icon [svgIcon]="bondingTripleToolIcon()" />
+    </button>
+
+    <div class="divider"></div>
+
+    <button matIconButton type="button" [class.active-tool]="pointerModeActive()" (click)="setPointerMode()">
+      <mat-icon fontSet="material-symbols">arrow_selector_tool</mat-icon>
+    </button>
+    <button matIconButton type="button" [class.active-tool]="duplicateModeActive()" (click)="setDuplicateMode()">
+      <mat-icon fontSet="material-symbols">content_copy</mat-icon>
+    </button>
+    <button matIconButton type="button" [class.active-tool]="groupMoveModeActive()" (click)="setGroupMoveMode()">
+      <mat-icon fontSet="material-symbols">drag_pan</mat-icon>
+    </button>
+
+    <div class="divider"></div>
+
+    <button matIconButton type="button" [disabled]="!service.model.undoAvailable()" (click)="service.model.undo()">
+      <mat-icon>undo</mat-icon>
+    </button>
+    <button matIconButton type="button" [disabled]="!service.model.redoAvailable()" (click)="service.model.redo()">
+      <mat-icon>redo</mat-icon>
+    </button>
+
+    <div class="divider"></div>
+
+    <button matIconButton type="button" [disabled]="!isModelEmpty()" (click)="handleClearAll()">
+      <mat-icon>restart_alt</mat-icon>
+    </button>
+    <button matIconButton type="button" [disabled]="noItemSelected" (click)="service.deleteSelectedItem()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+</div>
+
+<!-- Right Toolbar -->
+<div class="right-container">
+  <div class="toolbar right">
+    @for (element of quickPickElements1; track element.number) {
+      <ng-container *ngTemplateOutlet="quickPickButton; context: { element }" />
+    }
+    <div class="divider"></div>
+    @for (element of quickPickElements2; track element.number) {
+      <ng-container *ngTemplateOutlet="quickPickButton; context: { element }" />
+    }
+    <div class="divider"></div>
+    <button matIconButton type="button" (click)="handlePickElement($event)">
+      <mat-icon>keyboard_double_arrow_left</mat-icon>
+    </button>
+  </div>
+</div>
+
+<!-- Left Toolbar -->
+<!-- DISABLED, currently not required -->
+@if (false) {
+  <div class="left-container">
+    <div class="toolbar left">
+      <button matIconButton type="button" [disabled]="zoomInDisabled()" (click)="handleZoom(+1)">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+      <div role="button" (click)="zoomLevelIndex.set(4)">{{ zoomLevels[zoomLevelIndex()] }}%</div>
+      <button matIconButton type="button" [disabled]="zoomOutDisabled()" (click)="handleZoom(-1)">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Save button -->
+@let saveTemplate = saveTemplateRef();
+@if (saveTemplate) {
+  <div class="save-container">
+    <ng-container *ngTemplateOutlet="saveTemplate" />
+  </div>
+}
+
+<!-- Template for quick-pick element button -->
+<ng-template #quickPickButton let-element="element">
+  <button matIconButton type="button" (click)="handleAddElement(element.number, $event)">
+    {{ element.symbol }}
+  </button>
+</ng-template>

@@ -1,0 +1,58 @@
+.atom-handle {
+  fill: var(--mat-sys-surface);
+  stroke: var(--mat-sys-on-surface);
+  stroke-opacity: 50%;
+  stroke-width: 1;
+
+  cursor: var(--atom-handle-cursor);
+
+  &.temporary {
+    stroke-dasharray: 4;
+  }
+
+  &.targeted {
+    stroke-width: 2;
+    stroke: var(--mat-sys-primary);
+  }
+
+  &:not(.temporary, .targeted):hover {
+    fill: var(--mat-sys-surface-dim);
+  }
+
+  &.selected {
+    fill: var(--mat-sys-primary) !important;
+    stroke: var(--mat-sys-primary) !important;
+  }
+}
+
+.atom-symbol {
+  user-select: none;
+  pointer-events: none;
+
+  font-size: 24px;
+  text-anchor: middle;
+  dominant-baseline: central;
+
+  fill: var(--mat-sys-on-surface);
+
+  &.temporary {
+    fill: var(--mat-sys-surface-dim);
+  }
+
+  &.targeted {
+    font-weight: 2;
+    fill: var(--mat-sys-primary);
+  }
+
+  &.selected {
+    font-weight: 400;
+    stroke: var(--mat-sys-on-primary) !important;
+    fill: var(--mat-sys-on-primary) !important;
+  }
+}
+
+.atom-electron {
+  fill: var(--mat-sys-on-surface);
+  stroke: var(--mat-sys-on-surface);
+  stroke-linecap: round;
+}

@@ -1,0 +1,27 @@
+.params-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: start;
+  align-items: start;
+}
+
+.params-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+::ng-deep .mdc-switch {
+  transform: scale(80%);
+}
+
+.widget {
+  outline: 1px solid grey;
+  margin: 1rem;
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <base href="/">
+  <link rel="icon" href="./iqb-logo-only-white.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="Alexander Dahmen" />
+  <title>Widget Dummy-Host</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Widget-Host PsSelectApp -->
+<div id="app"></div>
+<script type="importmap">
+  {
+    "imports": {
+      "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js",
+      "vue3-sfc-loader": "https://unpkg.com/vue3-sfc-loader/dist/vue3-sfc-loader.esm.js"
+    }
+  }
+</script>
+<script type="module">
+  import * as Vue from 'vue';
+  import { loadModule } from 'vue3-sfc-loader';
+
+  const loadModuleOptions = {
+    moduleCache: { vue: Vue },
+    async getFile(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${ response.status } ${ url }`);
+      return { getContentData: binary => binary ? response.arrayBuffer() : response.text() };
+    },
+    addStyle(styleContent) {
+      const style = document.createElement('style');
+      style.textContent = styleContent;
+      document.head.appendChild(style);
+    },
+  };
+
+  function loadModuleComponent(module) {
+    return Vue.defineAsyncComponent(() => loadModule(module, loadModuleOptions));
+  }
+
+  Vue
+    .createApp({ name: 'PsSelectApp', template: `<widget-dummy-host/>` })
+    .component('widget-dummy-host', loadModuleComponent('WidgetDummyHost.vue'))
+    .mount('#app');
+</script>
+</body>
+</html>

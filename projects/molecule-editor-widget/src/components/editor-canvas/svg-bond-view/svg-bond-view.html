@@ -1,0 +1,44 @@
+@let bond = bondView();
+<ng-container xmlns:svg="http://www.w3.org/2000/svg">
+  @if (!bond.temporary) {
+    <!-- Handle is an invisible line behind visible bond, serves as a target for selection by clicking on it -->
+    <svg:line
+      class="bond-handle"
+      [attr.x1]="bond.leftPosition[0]"
+      [attr.y1]="bond.leftPosition[1]"
+      [attr.x2]="bond.rightPosition[0]"
+      [attr.y2]="bond.rightPosition[1]"
+      (click)="service.handleBondEvent(bond.itemId, $event)"
+    ></svg:line>
+  }
+
+  <!-- Visible bond: Either draw as a line ("valence") or as dots ("electrons") -->
+  @switch (bondingType()) {
+    @case (ValenceBondingType) {
+      @for (line of bondLinePositions(); track $index) {
+        <svg:line
+          class="bond-line"
+          [class.selected]="bond.selected"
+          [class.temporary]="bond.temporary"
+          [attr.x1]="line[0][0]"
+          [attr.y1]="line[0][1]"
+          [attr.x2]="line[1][0]"
+          [attr.y2]="line[1][1]"
+          [attr.stroke-width]="valenceBondRadius"
+        ></svg:line>
+      }
+    }
+    @case (ElectronsBondingType) {
+      @for (dot of bondDotsPositions(); track $index) {
+        <svg:circle
+          class="bond-dot"
+          [class.selected]="bond.selected"
+          [class.temporary]="bond.temporary"
+          [attr.cx]="dot[0]"
+          [attr.cy]="dot[1]"
+          [attr.r]="electronBondRadius"
+        ></svg:circle>
+      }
+    }
+  }
+</ng-container>

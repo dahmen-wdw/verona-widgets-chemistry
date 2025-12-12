@@ -1,0 +1,55 @@
+@let appearance = service.appearance();
+<article
+  class="ps-table"
+  role="application"
+  aria-label="Periodic-System Select Widget"
+  [style.--ps-text-color]="appearance.defaultTextColor || '#ffffff'"
+  [style.--ps-element-color]="appearance.defaultBaseColor || '#196175'"
+  [style.--ps-element-b-s-color]="appearance.enableBlockColors ? appearance.blockColors.s : undefined"
+  [style.--ps-element-b-d-color]="appearance.enableBlockColors ? appearance.blockColors.d : undefined"
+  [style.--ps-element-b-f-color]="appearance.enableBlockColors ? appearance.blockColors.f : undefined"
+  [style.--ps-element-b-g-color]="appearance.enableBlockColors ? appearance.blockColors.g : undefined"
+  [style.--ps-element-b-p-color]="appearance.enableBlockColors ? appearance.blockColors.p : undefined"
+  [style.--gutter-height]="appearance.showLabels ? undefined : 0"
+>
+  @let highlight = highlightRef();
+  @if (highlight) {
+    <div class="ps-highlight">
+      <ng-container *ngTemplateOutlet="highlight; context: { hoveredElement: hoveredElement() }"></ng-container>
+    </div>
+  }
+
+  @let interactions = interactionsRef();
+  @if (interactions) {
+    <div class="ps-interactions">
+      <ng-container *ngTemplateOutlet="interactions"></ng-container>
+    </div>
+  }
+
+  @let notification = notificationRef();
+  @if (notification) {
+    <div class="ps-notification">
+      <ng-container *ngTemplateOutlet="notification"></ng-container>
+    </div>
+  }
+
+  @if (appearance.showLabels) {
+    @for (periodNr of periodNumbers; track periodNr) {
+      <div class="ps-label" role="presentation" [class]="periodClassName(periodNr)">
+        {{ periodNr }}
+      </div>
+    }
+
+    @for (groupNr of groupNumbers; track groupNr) {
+      <div class="ps-label" role="presentation" [class]="groupClassName(groupNr)">
+        {{ groupNr }}
+      </div>
+    }
+  }
+
+  @for (element of elements; track element.number) {
+    <section class="ps-element" [class]="elementClassNames(element)" [attr.aria-label]="element.symbol">
+      <lib-ps-table-element [element]="element" />
+    </section>
+  }
+</article>

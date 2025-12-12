@@ -1,0 +1,43 @@
+.bond-handle {
+  stroke: transparent;
+  stroke-width: 20;
+
+  cursor: var(--bond-handle-cursor);
+
+  &:hover {
+    stroke: var(--mat-sys-surface-dim);
+  }
+}
+
+.bond-line {
+  stroke: var(--mat-sys-on-surface);
+
+  pointer-events: none;
+
+  &.temporary {
+    opacity: 40%;
+  }
+
+  &.selected {
+    filter: brightness(150%);
+    stroke: var(--mat-sys-primary);
+    stroke-width: 5;
+  }
+}
+
+.bond-dot {
+  pointer-events: none;
+
+  fill: var(--mat-sys-on-surface);
+  stroke-width: 0;
+
+  &.temporary {
+    opacity: 40%;
+  }
+
+  &.selected {
+    r: 5px;
+    filter: brightness(150%);
+    fill: var(--mat-sys-primary);
+  }
+}
