@@ -1,13 +1,13 @@
 <lib-ps-table>
-  <ng-container *psTableHighlight="let hovered = hoveredElement">
-    @if (hovered) {
-      <lib-ps-element-focus [element]="hovered" />
+  <ng-container *psTableHighlight="let he = highlightedElement">
+    @if (he) {
+      <lib-ps-element-focus [element]="he" />
     }
   </ng-container>
 
   <ng-container *psTableNotification>
-    @let interactionConfig = psService.interaction.interactionConfig();
-    @if (multiSelectMaxedOut()) {
+    @if (psService.interaction.showMaxSelectionAlert()) {
+      @let interactionConfig = psService.interaction.interactionConfig();
       <app-ps-select-alert>
         <div>Du hast bereits {{ interactionConfig.maxSelectCount }} Elemente gewählt.</div>
       </app-ps-select-alert>

@@ -15,7 +15,7 @@
   @let highlight = highlightRef();
   @if (highlight) {
     <div class="ps-highlight">
-      <ng-container *ngTemplateOutlet="highlight; context: { hoveredElement: hoveredElement() }"></ng-container>
+      <ng-container *ngTemplateOutlet="highlight; context: { highlightedElement: highlightedElement() }"></ng-container>
     </div>
   }
 
