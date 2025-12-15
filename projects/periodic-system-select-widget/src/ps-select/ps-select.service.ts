@@ -1,5 +1,14 @@
-import type { EffectRef, Signal, WritableSignal } from '@angular/core';
-import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
+import {
+  computed,
+  effect,
+  EffectRef,
+  inject,
+  Injectable,
+  Signal,
+  signal,
+  untracked,
+  WritableSignal,
+} from '@angular/core';
 import type { PsAppearance, PsElement, PsElementNumber, PsInteraction, PsLocale } from 'periodic-system-common';
 import { PsElementBlock, PsElements, PsService } from 'periodic-system-common';
 import { VeronaWidgetService } from 'verona-widget';
@@ -26,7 +35,7 @@ export const enum PeriodicSystemSharedParam {
 export class PsSelectService implements PsService {
   private readonly widgetService = inject(VeronaWidgetService);
 
-  readonly interaction = new PeriodicSystemSelectInteraction(this.widgetService);
+  readonly interaction = new PsSelectInteraction(this.widgetService);
 
   readonly appearance = computed((): PsAppearance => {
     const config = this.widgetService.configuration();
@@ -68,12 +77,14 @@ export class PsSelectService implements PsService {
   });
 }
 
-class PeriodicSystemSelectInteraction implements PsInteraction {
+class PsSelectInteraction implements PsInteraction {
   readonly highlightedElement: WritableSignal<undefined | PsElementNumber>;
   readonly selectedElementList: WritableSignal<ReadonlyArray<PsElementNumber>>;
+  readonly showMaxSelectionAlert: WritableSignal<boolean>;
 
   constructor(private readonly widgetService: VeronaWidgetService) {
     this.highlightedElement = signal(undefined);
+    this.showMaxSelectionAlert = signal(false);
 
     // Deserialize initial state received by widget
     const initialSerializedElementSymbols = this.widgetService.stateData();
@@ -139,18 +150,22 @@ class PeriodicSystemSelectInteraction implements PsInteraction {
         this.selectedElementList.set([element.number]);
         this.highlightedElement.set(element.number);
       }
+      this.showMaxSelectionAlert.set(false);
     } else if (alreadyIncluded) {
       // multi-select remove click
       this.selectedElementList.set(selected.filter((x) => x !== element.number));
       this.highlightedElement.set(undefined);
+      this.showMaxSelectionAlert.set(false);
     } else if (maxSelectCount < 1 || selected.length < maxSelectCount) {
       // multi-select add click (either no max select count, or still below max select count)
       this.selectedElementList.set(selected.concat(element.number));
       this.highlightedElement.set(element.number);
+      this.showMaxSelectionAlert.set(false);
     } else {
       // no change (max select count reached),
       // but still highlight clicked element to show information
       this.highlightedElement.set(element.number);
+      this.showMaxSelectionAlert.set(true);
     }
   }
 }

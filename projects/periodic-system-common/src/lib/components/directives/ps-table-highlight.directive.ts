@@ -2,7 +2,7 @@ import { Directive } from '@angular/core';
 import { PsElement } from '../../data/PsData';
 
 export interface PsTableHighlightContext {
-  readonly hoveredElement: undefined | PsElement;
+  readonly highlightedElement: undefined | PsElement;
 }
 
 @Directive({
