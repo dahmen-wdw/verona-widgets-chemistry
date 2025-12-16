@@ -12,7 +12,7 @@ export interface VowStartCommand {
   readonly sessionId: string;
   readonly parameters?: VowParameterCollection;
   readonly sharedParameters?: VowParameterCollection;
-  readonly state: string; // serialized initial state of the widget, received from host
+  readonly state?: string; // serialized initial state of the widget, received from host
 }
 
 export interface VowStateChangedNotification {
