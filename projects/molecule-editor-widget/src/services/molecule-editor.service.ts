@@ -510,12 +510,20 @@ function parseBondingType(value: string): MoleculeEditorBondingType {
 }
 
 function parseSerializedEditorModel(initialStateData: string): MoleculeEditorModel {
-  if (!initialStateData) return MoleculeEditorModel.empty;
-
-  const data = JSON.parse(initialStateData);
-  if (data === null || typeof data !== 'object') return MoleculeEditorModel.empty;
-
-  const atoms = data.atoms ?? {};
-  const bonds = data.bonds ?? {};
-  return { atoms, bonds };
+  if (!initialStateData) {
+    return MoleculeEditorModel.empty;
+  }
+  try {
+    const data = JSON.parse(initialStateData);
+    if (data === null || typeof data !== 'object') {
+      return MoleculeEditorModel.empty;
+    }
+    console.log('Parsing JSON editor-model state data:', data);
+    const atoms = data.atoms ?? {};
+    const bonds = data.bonds ?? {};
+    return { atoms, bonds };
+  } catch (e) {
+    console.warn('Received invalid JSON editor-model state data:', initialStateData);
+    return MoleculeEditorModel.empty;
+  }
 }
