@@ -62,6 +62,16 @@ location /verona-widgets-chemistry {
 }
 ```
 
+## Deploy Demo to GitHub Pages
+
+Nach dem Build der Demo Showcase-App zusätzlich
+
+```
+$ npm run inline:all
+```
+
+ausführen. Dazu werden alle Widgets mit Inlined-Assets bereitgestellt und die Showcase index.html in den docs/ Ordner kopiert.
+
 ## Widget Dummy Host
 
 Um Widgets in `index_packed.html` Dateien zu testen, wird ein Widget-Dummy-Host bereitgestellt.
